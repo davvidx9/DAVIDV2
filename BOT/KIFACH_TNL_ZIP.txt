@@ -1,0 +1,31 @@
+========================================
+  ZIP خاوي فـ GitHub؟ — هادا الحل
+========================================
+
+GitHub ما كيبينش محتوى ZIP فالصفحة — كيبان غير "View raw".
+هادا ماشي معناها ZIP خاوي!
+
+1) كليك على "View raw" (ولا Download)
+2) حفظ الملف: WORKING-sip-ivr-FLAT.zip
+3) كليك يمين → Extract All
+4) استخرج داخل:
+   C:\Users\klare\Desktop\WORKING
+
+   مهم: استعمل WORKING-sip-ivr-FLAT.zip
+   (الملفات مباشرة فالجذر، ماشي مجلد فرعي)
+
+5) خاصك تشوف:
+   telegram_bot.py
+   run.py
+   api.py
+   sip_call_manager.py
+   ...
+
+========================================
+  ZIP FLAT vs ZIP عادي
+========================================
+
+WORKING-sip-ivr-FLAT.zip  → للـ Desktop\WORKING (نصح)
+WORKING-sip-ivr.zip       → فيه مجلد WORKING\ داخل
+
+========================================
