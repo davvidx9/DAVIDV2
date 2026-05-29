@@ -1,0 +1,29 @@
+========================================
+  ملفات Python ديال المشروع (WORKING)
+========================================
+
+telegram_bot.py     → البوت ديال Telegram (/call, /recall, …)
+run.py              → شغّل البوت: python run.py
+api.py              → Flask + بداية ARI WebSocket
+sip_call_manager.py → مكالمات SIP (originate, DTMF, record, hangup)
+call_flows.py       → منطق IVR (voice, pin, bank, custom, …)
+config.py           → .env variables
+db.py               → MongoDB
+tts.py              → صوت TTS (gTTS → wav)
+
+config:
+  .env.example      → انسخها إلى .env
+  requirements.txt  → pip install
+
+Telephony:
+  asterisk/*.conf   → PJSIP + ARI (مع Docker)
+
+Windows:
+  START_WINDOWS.bat
+  install.ps1
+  README_DARIJA.txt
+
+========================================
+  ما كاينش alone.py / api.py ديال Telnyx OTP
+  هاد مشروع SIP جديد مشروع
+========================================
