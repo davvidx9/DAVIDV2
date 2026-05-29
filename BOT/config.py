@@ -25,8 +25,8 @@ SIP_ENDPOINT = os.getenv("SIP_ENDPOINT", "trunk")  # pjsip endpoint name in pjsi
 CALLER_ID_NUMBER = os.getenv("CALLER_ID_NUMBER", "")  # client's published number
 CALLER_ID_NAME = os.getenv("CALLER_ID_NAME", "IVR")
 
-# Asterisk ARI
-ARI_URL = os.getenv("ARI_URL", "http://127.0.0.1:8088/ari")
+# Asterisk ARI — default localhost for Windows; use http://asterisk:8088/ari in Docker app container
+ARI_URL = os.getenv("ARI_URL", "http://127.0.0.1:8088/ari").rstrip("/")
 ARI_USERNAME = os.getenv("ARI_USERNAME", "ivr")
 ARI_PASSWORD = os.getenv("ARI_PASSWORD", "ivr_secret")
 ARI_APP = os.getenv("ARI_APP", "ivr-platform")
