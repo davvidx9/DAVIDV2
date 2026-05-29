@@ -1,0 +1,31 @@
+========================================
+  ERROR: getaddrinfo failed (11001)
+========================================
+
+المشكل: البوت كيحاول يتصل بـ Asterisk عبر WebSocket
+ولكن العنوان فـ .env غلط ولا Asterisk ما خدامش.
+
+--- إلا كتخدم python run.py على Windows (بلا Docker app) ---
+
+1) فـ .env بدّل:
+   ARI_URL=http://127.0.0.1:8088/ari
+
+   ماشي: http://asterisk:8088/ari
+   (asterisk كيخدم غير داخل Docker)
+
+2) خاص Asterisk يكون شغال على البورت 8088:
+
+   docker compose up -d asterisk mongodb
+
+   ولا ثبت Asterisk كامل.
+
+3) جرّب فالمتصفح:
+   http://127.0.0.1:8088/ari/api-docs/resources.json
+   (غادي يطلب user/pass: ivr / ivr_secret)
+
+--- إلا عندك Docker Desktop ---
+
+   docker compose up -d --build
+   (كيشغل asterisk + mongodb + app معاً)
+
+========================================

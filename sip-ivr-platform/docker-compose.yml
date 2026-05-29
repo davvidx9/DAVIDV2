@@ -1,0 +1,41 @@
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  asterisk:
+    image: andrius/asterisk:20
+    restart: unless-stopped
+    ports:
+      - "5060:5060/udp"
+      - "8088:8088"
+      - "10000-10100:10000-10100/udp"
+    volumes:
+      - ./asterisk/pjsip.conf:/etc/asterisk/pjsip.conf
+      - ./asterisk/extensions.conf:/etc/asterisk/extensions.conf
+      - ./asterisk/ari.conf:/etc/asterisk/ari.conf
+      - ./asterisk/http.conf:/etc/asterisk/http.conf
+      - ./asterisk/modules.conf:/etc/asterisk/modules.conf
+      - ./sounds:/var/lib/asterisk/sounds
+      - ./recordings:/var/spool/asterisk/recording
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - mongodb
+      - asterisk
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./sounds:/app/sounds
+      - ./recordings:/app/recordings
+    command: python telegram_bot.py
+
+volumes:
+  mongo_data:
