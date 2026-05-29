@@ -5,6 +5,16 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
+# Load .env from project folder (required for: python run.py on Windows)
+_env_file = BASE_DIR / ".env"
+if _env_file.is_file():
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(_env_file)
+    except ImportError:
+        pass  # pip install python-dotenv
+
 # SIP trunk / PJSIP endpoint (outbound caller ID = your client's number, no spoof)
 SIP_USERNAME = os.getenv("SIP_USERNAME", "")
 SIP_PASSWORD = os.getenv("SIP_PASSWORD", "")
