@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Savory Kitchen — Fresh ingredients, bold flavors, unforgettable dining.">
+  <title>Savory Kitchen | Fresh Food & Bold Flavors</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header" id="header">
+    <nav class="nav container">
+      <a href="#" class="logo">
+        <span class="logo-icon">🍽</span>
+        <span class="logo-text">Savory</span>
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#home">Home</a></li>
+        <li><a href="#menu">Menu</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#gallery">Gallery</a></li>
+        <li><a href="#contact" class="btn btn-nav">Order Now</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div class="hero-bg"></div>
+      <div class="hero-content container">
+        <p class="hero-tag">Farm to Table Since 2018</p>
+        <h1 class="hero-title">Taste the Art of <em>Fresh</em> Cooking</h1>
+        <p class="hero-desc">Handcrafted dishes made with seasonal ingredients, inspired by flavors from around the world.</p>
+        <div class="hero-actions">
+          <a href="#menu" class="btn btn-primary">Explore Menu</a>
+          <a href="#contact" class="btn btn-outline">Book a Table</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-num">50+</span>
+            <span class="stat-label">Dishes</span>
+          </div>
+          <div class="stat">
+            <span class="stat-num">4.9</span>
+            <span class="stat-label">Rating</span>
+          </div>
+          <div class="stat">
+            <span class="stat-num">12k</span>
+            <span class="stat-label">Happy Guests</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="menu section" id="menu">
+      <div class="container">
+        <div class="section-header">
+          <p class="section-tag">Our Menu</p>
+          <h2 class="section-title">Signature Dishes</h2>
+          <p class="section-desc">Every plate tells a story — crafted with passion and the finest local ingredients.</p>
+        </div>
+
+        <div class="menu-filters" id="menuFilters">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="starters">Starters</button>
+          <button class="filter-btn" data-filter="mains">Mains</button>
+          <button class="filter-btn" data-filter="desserts">Desserts</button>
+        </div>
+
+        <div class="menu-grid" id="menuGrid">
+          <article class="menu-card" data-category="starters">
+            <div class="menu-card-img">
+              <img src="https://images.unsplash.com/photo-1541014746131-dce4fd198b94?w=600&h=400&fit=crop" alt="Bruschetta" loading="lazy">
+              <span class="menu-badge">Popular</span>
+            </div>
+            <div class="menu-card-body">
+              <div class="menu-card-top">
+                <h3>Tomato Bruschetta</h3>
+                <span class="price">$12</span>
+              </div>
+              <p>Grilled sourdough topped with heirloom tomatoes, basil, and aged balsamic.</p>
+              <button class="btn btn-sm add-to-cart">Add to Order</button>
+            </div>
+          </article>
+
+          <article class="menu-card" data-category="starters">
+            <div class="menu-card-img">
+              <img src="https://images.unsplash.com/photo-1608039756161-9c09a4a5adf1?w=600&h=400&fit=crop" alt="Soup" loading="lazy">
+            </div>
+            <div class="menu-card-body">
+              <div class="menu-card-top">
+                <h3>Roasted Pumpkin Soup</h3>
+                <span class="price">$10</span>
+              </div>
+              <p>Creamy roasted pumpkin with coconut milk, ginger, and toasted pumpkin seeds.</p>
+              <button class="btn btn-sm add-to-cart">Add to Order</button>
+            </div>
+          </article>
+
+          <article class="menu-card" data-category="mains">
+            <div class="menu-card-img">
+              <img src="https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&h=400&fit=crop" alt="Grilled Salmon" loading="lazy">
+              <span class="menu-badge">Chef's Pick</span>
+            </div>
+            <div class="menu-card-body">
+              <div class="menu-card-top">
+                <h3>Grilled Atlantic Salmon</h3>
+                <span class="price">$28</span>
+              </div>
+              <p>Pan-seared salmon with lemon butter, asparagus, and wild rice pilaf.</p>
+              <button class="btn btn-sm add-to-cart">Add to Order</button>
+            </div>
+          </article>
+
+          <article class="menu-card" data-category="mains">
+            <div class="menu-card-img">
+              <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&h=400&fit=crop" alt="Pizza" loading="lazy">
+            </div>
+            <div class="menu-card-body">
+              <div class="menu-card-top">
+                <h3>Wood-Fired Margherita</h3>
+                <span class="price">$18</span>
+              </div>
+              <p>San Marzano tomatoes, fresh mozzarella, basil, and extra virgin olive oil.</p>
+              <button class="btn btn-sm add-to-cart">Add to Order</button>
+            </div>
+          </article>
+
+          <article class="menu-card" data-category="mains">
+            <div class="menu-card-img">
+              <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=400&fit=crop" alt="Burger" loading="lazy">
+              <span class="menu-badge">Popular</span>
+            </div>
+            <div class="menu-card-body">
+              <div class="menu-card-top">
+                <h3>Gourmet Wagyu Burger</h3>
+                <span class="price">$22</span>
+              </div>
+              <p>Grass-fed wagyu patty, caramelized onions, aged cheddar, and truffle aioli.</p>
+              <button class="btn btn-sm add-to-cart">Add to Order</button>
+            </div>
+          </article>
+
+          <article class="menu-card" data-category="desserts">
+            <div class="menu-card-img">
+              <img src="https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600&h=400&fit=crop" alt="Chocolate Cake" loading="lazy">
+            </div>
+            <div class="menu-card-body">
+              <div class="menu-card-top">
+                <h3>Dark Chocolate Lava Cake</h3>
+                <span class="price">$14</span>
+              </div>
+              <p>Warm Belgian chocolate cake with a molten center, served with vanilla gelato.</p>
+              <button class="btn btn-sm add-to-cart">Add to Order</button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="about section" id="about">
+      <div class="container about-grid">
+        <div class="about-images">
+          <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=700&fit=crop" alt="Restaurant interior" class="about-img-main" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop" alt="Chef plating food" class="about-img-sub" loading="lazy">
+        </div>
+        <div class="about-content">
+          <p class="section-tag">Our Story</p>
+          <h2 class="section-title">Where Passion Meets the Plate</h2>
+          <p>Founded in 2018, Savory Kitchen began as a small neighborhood bistro with one mission: serve honest food made from ingredients you can trust.</p>
+          <p>Our chefs source produce from local farms every morning, ensuring each dish bursts with freshness and flavor. From cozy weeknight dinners to celebratory feasts, we welcome you to our table.</p>
+          <ul class="about-features">
+            <li>
+              <span class="feature-icon">🌿</span>
+              <div>
+                <strong>Organic Ingredients</strong>
+                <p>Locally sourced, pesticide-free produce</p>
+              </div>
+            </li>
+            <li>
+              <span class="feature-icon">👨‍🍳</span>
+              <div>
+                <strong>Award-Winning Chefs</strong>
+                <p>Trained in Michelin-starred kitchens</p>
+              </div>
+            </li>
+            <li>
+              <span class="feature-icon">♻️</span>
+              <div>
+                <strong>Sustainable Practices</strong>
+                <p>Zero-waste kitchen, eco-friendly packaging</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="gallery section" id="gallery">
+      <div class="container">
+        <div class="section-header">
+          <p class="section-tag">Gallery</p>
+          <h2 class="section-title">A Feast for the Eyes</h2>
+        </div>
+        <div class="gallery-grid">
+          <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&h=500&fit=crop" alt="Gourmet dish" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1476224203421-9ac39bcb7b50?w=500&h=500&fit=crop" alt="Pasta dish" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1482049016688-a93bd3a5b5c?w=500&h=500&fit=crop" alt="Breakfast spread" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&h=500&fit=crop" alt="Fresh salad" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&h=500&fit=crop" alt="Pancakes" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1493770348161-369537ae357a?w=500&h=500&fit=crop" alt="Brunch plate" loading="lazy">
+        </div>
+      </div>
+    </section>
+
+    <section class="contact section" id="contact">
+      <div class="container contact-grid">
+        <div class="contact-info">
+          <p class="section-tag">Get in Touch</p>
+          <h2 class="section-title">Visit Us or Order Online</h2>
+          <p>We'd love to hear from you. Drop by for dine-in, or place an order for pickup and delivery.</p>
+          <ul class="contact-details">
+            <li>
+              <span class="contact-icon">📍</span>
+              <div>
+                <strong>Address</strong>
+                <p>42 Gourmet Street, Food District, NY 10001</p>
+              </div>
+            </li>
+            <li>
+              <span class="contact-icon">📞</span>
+              <div>
+                <strong>Phone</strong>
+                <p>(555) 123-4567</p>
+              </div>
+            </li>
+            <li>
+              <span class="contact-icon">🕐</span>
+              <div>
+                <strong>Hours</strong>
+                <p>Mon–Fri: 11am – 10pm<br>Sat–Sun: 10am – 11pm</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <form class="contact-form" id="contactForm">
+          <h3>Send a Message</h3>
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" placeholder="Your name" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" required>
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" rows="4" placeholder="Your message..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Send Message</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="logo">
+          <span class="logo-icon">🍽</span>
+          <span class="logo-text">Savory</span>
+        </a>
+        <p>Fresh ingredients. Bold flavors. Unforgettable moments.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#menu">Menu</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-social">
+        <h4>Follow Us</h4>
+        <div class="social-icons">
+          <a href="#" aria-label="Instagram">📷</a>
+          <a href="#" aria-label="Facebook">📘</a>
+          <a href="#" aria-label="Twitter">🐦</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom container">
+      <p>&copy; 2026 Savory Kitchen. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
