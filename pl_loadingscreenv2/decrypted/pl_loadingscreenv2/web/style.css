@@ -1,0 +1,1008 @@
+/* ============================================================
+   Pulse Scripts — Premium Loading Screen
+   style.css
+   ============================================================ */
+
+/* ── CSS Variables (overridden by script.js from config) ─── */
+:root {
+  --primary:      #c8a96e;
+  --accent:       #e8c87a;
+  --bg:           #080c14;
+  --text:         #f0ece4;
+  --muted:        rgba(240, 236, 228, 0.45);
+  --glass-bg:     rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --radius-sm:    6px;
+  --radius-md:    12px;
+  --radius-lg:    18px;
+}
+
+/* ── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* ============================================================
+   BACKGROUND
+   ============================================================ */
+
+.bg-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+#bg-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Base darkening — makes text always readable */
+.bg-overlay-base {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(4, 6, 12, 0.78) 0%,
+    rgba(4, 6, 12, 0.45) 55%,
+    rgba(4, 6, 12, 0.72) 100%
+  );
+}
+
+/* Configurable tint layer (opacity set by JS) */
+.bg-overlay-tint {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: 0;       /* set by JS */
+  pointer-events: none;
+}
+
+/* Cinematic vignette */
+.bg-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 80% at 50% 50%,
+    transparent 30%,
+    rgba(2, 4, 10, 0.72) 100%
+  );
+  pointer-events: none;
+}
+
+/* Subtle CRT-style scanlines for cinematic texture */
+.bg-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.04) 3px,
+    rgba(0, 0, 0, 0.04) 4px
+  );
+  pointer-events: none;
+}
+
+/* ============================================================
+   ROOT UI WRAPPER
+   ============================================================ */
+
+.ui-root {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  /* Fades in from slightly below — cinematic entrance */
+  animation: uiFadeIn 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.25s forwards;
+}
+
+@keyframes uiFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+
+.top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 26px 32px 0;
+  flex-shrink: 0;
+}
+
+/* ── Status pill ─────────────────────────────────────────── */
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: slideDown 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+  animation: dotPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 8px  var(--primary); }
+  50%       { opacity: 0.4; box-shadow: 0 0 4px  var(--primary); }
+}
+
+.status-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Keyframe shared ─────────────────────────────────────── */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0);      }
+}
+
+/* ============================================================
+   MUSIC PLAYER
+   ============================================================ */
+
+.music-player {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px 15px;
+  min-width: 288px;
+  max-width: 330px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  animation: slideDown 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.75s both;
+}
+
+.music-left {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+/* Cover art / icon */
+.music-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--glass-border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--primary);
+}
+
+.music-thumb svg {
+  width: 20px;
+  height: 20px;
+}
+
+.music-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.music-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.music-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.music-artist {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Controls row */
+.music-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mc-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.mc-btn svg {
+  width: 13px;
+  height: 13px;
+  pointer-events: none;
+}
+
+.mc-btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: var(--primary);
+  border-color: rgba(200, 169, 110, 0.4);
+  box-shadow: 0 0 10px rgba(200, 169, 110, 0.15);
+}
+
+/* Play button — larger, filled */
+.mc-play {
+  width: 34px;
+  height: 34px;
+  background: var(--primary);
+  color: #0d0d0d;
+  border-color: var(--primary);
+}
+
+.mc-play:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0d0d0d;
+  box-shadow: 0 0 18px rgba(232, 200, 122, 0.35);
+}
+
+/* Volume slider */
+.vol-slider {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(200, 169, 110, 0.6);
+  transition: transform 0.15s;
+}
+
+.vol-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+/* ============================================================
+   CONTENT AREA
+   ============================================================ */
+
+.content-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 62px;
+  gap: 32px;
+  min-height: 0;
+}
+
+/* ============================================================
+   BRANDING BLOCK (left)
+   ============================================================ */
+
+.brand-block {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  max-width: 520px;
+  animation: brandIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.45s both;
+}
+
+@keyframes brandIn {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0);      }
+}
+
+/* ── Logo ─────────────────────────────────────────────────── */
+.logo-wrap {
+  display: flex;
+  align-items: center;
+  height: 72px;
+}
+
+.server-logo {
+  height: 72px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 22px rgba(200, 169, 110, 0.28));
+  display: none;  /* shown by JS if src loads */
+}
+
+.logo-fallback {
+  height: 64px;
+  width: 64px;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-fallback svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 12px rgba(200, 169, 110, 0.3));
+}
+
+/* ── Name + tagline ──────────────────────────────────────── */
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.brand-name {
+  font-size: clamp(30px, 4.2vw, 56px);
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text);
+  line-height: 1;
+  text-shadow:
+    0 0 60px rgba(200, 169, 110, 0.18),
+    0 2px 4px rgba(0,0,0,0.6);
+}
+
+/* Decorative horizontal rule */
+.brand-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 1px;
+}
+
+.brand-rule-line {
+  flex: 1;
+  max-width: 130px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--primary), transparent);
+}
+
+.brand-rule-diamond {
+  width: 5px;
+  height: 5px;
+  background: var(--primary);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+  opacity: 0.7;
+  box-shadow: 0 0 6px var(--primary);
+}
+
+.brand-tagline {
+  font-size: clamp(11px, 1.3vw, 14px);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--primary);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.brand-subtitle {
+  font-size: clamp(10px, 1.1vw, 12px);
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* ── Social row ──────────────────────────────────────────── */
+.social-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.social-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-weight: 500;
+  cursor: pointer;
+  /* Reset default <button> appearance */
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  transition:
+    color        0.22s ease,
+    border-color 0.22s ease,
+    background   0.22s ease,
+    box-shadow   0.22s ease,
+    transform    0.22s ease;
+}
+
+.social-btn svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.social-btn:hover {
+  color: var(--primary);
+  border-color: rgba(200, 169, 110, 0.50);
+  background: rgba(200, 169, 110, 0.07);
+  box-shadow: 0 0 16px rgba(200, 169, 110, 0.14),
+              inset 0 0 12px rgba(200, 169, 110, 0.03);
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   STAFF PANEL (right)
+   ============================================================ */
+
+.staff-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 20px;
+  min-width: 238px;
+  max-width: 275px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  animation: staffIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.65s both;
+  /* Prevent panel from exceeding viewport height */
+  max-height: calc(100vh - 200px);
+}
+
+@keyframes staffIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+
+/* Panel header */
+.panel-cap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-cap-label {
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--primary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.panel-cap-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(200, 169, 110, 0.55), transparent);
+}
+
+/* Staff list */
+.staff-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.staff-list::-webkit-scrollbar { display: none; }
+
+/* Individual staff card */
+.staff-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: background 0.22s, border-color 0.22s;
+  /* Staggered entrance handled inline via style attribute */
+  opacity: 0;
+  transform: translateX(12px);
+  animation: cardIn 0.4s ease forwards;
+}
+
+@keyframes cardIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.staff-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--glass-border);
+}
+
+/* Avatar */
+.staff-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.staff-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.staff-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.staff-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.staff-role {
+  font-size: 9.5px;
+  color: var(--muted);
+  letter-spacing: 0.07em;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Online indicator */
+.staff-online {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  flex-shrink: 0;
+  box-shadow: 0 0 7px rgba(74, 222, 128, 0.6);
+}
+
+/* ============================================================
+   BOTTOM BAR — Loading progress
+   ============================================================ */
+
+.bottom-bar {
+  padding: 16px 32px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex-shrink: 0;
+  animation: barIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.9s both;
+}
+
+@keyframes barIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+
+.load-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Left cluster: toggle button + separator + loading text */
+.load-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.load-sep {
+  display: block;
+  width: 1px;
+  height: 12px;
+  background: var(--glass-border);
+  flex-shrink: 0;
+}
+
+.load-text {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.load-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 12px rgba(200, 169, 110, 0.5);
+}
+
+/* Progress track */
+.bar-track {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+/* Progress fill */
+.bar-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  /* Glowing leading-edge dot */
+}
+
+.bar-fill::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 8px  var(--accent),
+    0 0 18px var(--primary);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* Show dot only when bar has some progress */
+.bar-fill.active::after { opacity: 1; }
+
+/* Ambient glow layer below the bar */
+.bar-glow {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 1px;
+  width: 0%;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, var(--accent));
+  filter: blur(5px);
+  opacity: 0.55;
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+/* ============================================================
+   SHOW CONTROLS — Toggle Button
+   ============================================================ */
+
+.ctrl-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  transition:
+    color        0.2s ease,
+    border-color 0.2s ease,
+    background   0.2s ease,
+    box-shadow   0.2s ease;
+}
+
+.ctrl-toggle-btn svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.ctrl-toggle-btn:hover,
+.ctrl-toggle-btn.is-open {
+  color: var(--primary);
+  border-color: rgba(200, 169, 110, 0.50);
+  background: rgba(200, 169, 110, 0.07);
+  box-shadow: 0 0 14px rgba(200, 169, 110, 0.12);
+}
+
+/* ============================================================
+   CONTROLS OVERLAY + PANEL
+   ============================================================ */
+
+/*
+  The overlay covers the entire ui-root area but only blocks
+  pointer events when the panel is open (.is-open on overlay).
+  The panel itself slides up from just above the bottom bar.
+*/
+.ctrl-overlay {
+  position: absolute;
+  inset: 0;
+  /* Don't block clicks when closed */
+  pointer-events: none;
+  z-index: 20;
+  /* Flex used to anchor the panel to the bottom-center */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 32px 86px;   /* 86px ≈ height of bottom-bar */
+}
+
+.ctrl-overlay.is-open {
+  pointer-events: auto;
+}
+
+/* The glass panel */
+.ctrl-panel {
+  width: 100%;
+  max-width: 900px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: rgba(8, 12, 20, 0.82);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  padding: 20px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow:
+    0 -4px 40px rgba(0, 0, 0, 0.5),
+    0  0  0 1px rgba(200, 169, 110, 0.08);
+  /* Closed state */
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity   0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Open state — toggled by JS adding .is-open to the overlay */
+.ctrl-overlay.is-open .ctrl-panel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Panel header row */
+.ctrl-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ctrl-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.ctrl-panel-icon {
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+}
+
+.ctrl-panel-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ctrl-panel-title {
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Close button */
+.ctrl-close-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.ctrl-close-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ctrl-close-btn:hover {
+  color: var(--primary);
+  border-color: rgba(200, 169, 110, 0.45);
+  background: rgba(200, 169, 110, 0.07);
+}
+
+/* ── Keybind card grid ───────────────────────────────────── */
+
+.ctrl-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+/* Individual keybind card */
+.key-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  min-width: 72px;
+  cursor: default;
+  transition:
+    background   0.22s ease,
+    border-color 0.22s ease,
+    transform    0.22s ease,
+    box-shadow   0.22s ease;
+  /* Staggered entrance set inline */
+  opacity: 0;
+  transform: translateY(8px);
+  animation: keyCardIn 0.3s ease forwards;
+}
+
+@keyframes keyCardIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.key-card:hover {
+  background: rgba(200, 169, 110, 0.07);
+  border-color: rgba(200, 169, 110, 0.40);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(200, 169, 110, 0.10);
+}
+
+/* Key badge — the highlighted key name (F2, M, ~, etc.) */
+.key-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: var(--primary);
+  color: #0d0d0d;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  /* Inner shadow for a subtle "keycap" depth */
+  box-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(200, 169, 110, 0.25);
+}
+
+/* Key label underneath */
+.key-label {
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 400;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+
+.hidden {
+  display: none !important;
+}
