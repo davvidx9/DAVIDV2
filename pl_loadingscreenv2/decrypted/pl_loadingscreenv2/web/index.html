@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseScript LoadingScreen</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Config must load before script -->
+  <script src="config.js"></script>
+</head>
+<body>
+
+  <!-- =====================================================
+       BACKGROUND LAYER
+       ===================================================== -->
+  <div class="bg-wrap">
+    <video id="bg-video" autoplay loop muted playsinline></video>
+    <!-- Layered overlays for cinematic depth -->
+    <div class="bg-overlay-base"></div>
+    <div class="bg-overlay-tint" id="bg-overlay-tint"></div>
+    <div class="bg-vignette"></div>
+    <div class="bg-scanlines"></div>
+  </div>
+
+  <!-- =====================================================
+       MAIN UI  (fades in after load)
+       ===================================================== -->
+  <div class="ui-root" id="ui-root">
+
+    <!-- ── TOP BAR ─────────────────────────────────────── -->
+    <header class="top-bar">
+
+      <!-- Connection status pill -->
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span class="status-label">Connecting</span>
+      </div>
+
+      <!-- Music player -->
+      <div class="music-player" id="music-player">
+        <div class="music-left">
+          <div class="music-thumb" id="music-thumb">
+            <!-- Icon injected by JS -->
+          </div>
+          <div class="music-meta">
+            <div class="music-title" id="music-title">No Track</div>
+            <div class="music-artist" id="music-artist">—</div>
+          </div>
+        </div>
+        <div class="music-right">
+          <button class="mc-btn" id="btn-prev" title="Previous"></button>
+          <button class="mc-btn mc-play" id="btn-play" title="Play / Pause"></button>
+          <button class="mc-btn" id="btn-next" title="Next"></button>
+          <button class="mc-btn" id="btn-mute" title="Mute"></button>
+          <input type="range" class="vol-slider" id="vol-slider"
+                 min="0" max="1" step="0.01" value="0.35">
+        </div>
+      </div>
+
+    </header>
+
+    <!-- ── CONTENT AREA ────────────────────────────────── -->
+    <main class="content-area">
+
+      <!-- Left: branding block -->
+      <section class="brand-block">
+
+        <!-- Logo -->
+        <div class="logo-wrap" id="logo-wrap">
+          <img id="server-logo" src="" alt="Logo" class="server-logo">
+          <!-- SVG fallback shown when no logo image -->
+          <div class="logo-fallback" id="logo-fallback">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="32,4 60,18 60,46 32,60 4,46 4,18"
+                       stroke="currentColor" stroke-width="2" fill="none" opacity="0.6"/>
+              <polygon points="32,14 50,23 50,41 32,50 14,41 14,23"
+                       stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.3"/>
+              <circle cx="32" cy="32" r="6" fill="currentColor" opacity="0.8"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Name + tagline -->
+        <div class="brand-text">
+          <h1 class="brand-name" id="brand-name"></h1>
+          <div class="brand-rule">
+            <span class="brand-rule-line"></span>
+            <span class="brand-rule-diamond"></span>
+          </div>
+          <p class="brand-tagline" id="brand-tagline"></p>
+          <p class="brand-subtitle" id="brand-subtitle"></p>
+        </div>
+
+        <!-- Social links -->
+        <nav class="social-row" id="social-row" aria-label="Social media"></nav>
+
+      </section>
+
+      <!-- Right: staff panel -->
+      <aside class="staff-panel" id="staff-panel">
+        <div class="panel-cap">
+          <span class="panel-cap-label" id="staff-title"></span>
+          <span class="panel-cap-line"></span>
+        </div>
+        <ul class="staff-list" id="staff-list" role="list"></ul>
+      </aside>
+
+    </main>
+
+    <!-- ── CONTROLS OVERLAY ─────────────────────────────── -->
+    <!--
+      Sits inside ui-root (position:absolute) so it layers
+      cleanly above the video without affecting the flex flow.
+    -->
+    <div class="ctrl-overlay" id="ctrl-overlay" aria-hidden="true">
+      <div class="ctrl-panel" id="ctrl-panel" role="dialog" aria-label="Server controls">
+
+        <div class="ctrl-panel-header">
+          <div class="ctrl-panel-heading">
+            <span class="ctrl-panel-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/>
+              </svg>
+            </span>
+            <span class="ctrl-panel-title" id="ctrl-panel-title">SERVER CONTROLS</span>
+          </div>
+          <button class="ctrl-close-btn" id="ctrl-close-btn" type="button" title="Close">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Keybind cards injected here by script.js -->
+        <div class="ctrl-grid" id="ctrl-grid"></div>
+
+      </div>
+    </div>
+
+    <!-- ── BOTTOM BAR ───────────────────────────────────── -->
+    <footer class="bottom-bar">
+      <div class="load-meta">
+        <!-- Left: toggle button + loading text -->
+        <div class="load-meta-left">
+          <button class="ctrl-toggle-btn" id="ctrl-toggle-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15 7.5V2H9v5.5l3 3 3-3zM7.5 9H2v6h5.5l3-3-3-3zM9 16.5V22h6v-5.5l-3-3-3 3zM16.5 9l-3 3 3 3H22V9h-5.5z"/>
+            </svg>
+            <span id="ctrl-toggle-label">Show Controls</span>
+          </button>
+          <span class="load-sep"></span>
+          <span class="load-text" id="load-text"></span>
+        </div>
+        <!-- Right: percentage -->
+        <span class="load-pct" id="load-pct">0%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="bar-fill"></div>
+        <div class="bar-glow" id="bar-glow"></div>
+      </div>
+    </footer>
+
+  </div><!-- /ui-root -->
+
+  <script src="script.js"></script>
+</body>
+</html>
