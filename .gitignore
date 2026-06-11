@@ -28,3 +28,5 @@ yarn-debug.log*
 yarn-error.log*
 pl_loadingscreenv2/*.zip
 pl_loadingscreenv2/extracted/
+fivem_map_script/*.zip
+fivem_map_script/extracted/
