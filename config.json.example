@@ -4,10 +4,7 @@
   "dashboard_url": "https://us11111111.signalwire.com/dashboard",
   "session_check_url": "https://us11111111.signalwire.com/dashboard",
   "target_url": "https://us11111111.signalwire.com/payment_methods/new",
-  "navigate_urls": [
-    "https://us11111111.signalwire.com/dashboard",
-    "https://us11111111.signalwire.com/payment_methods/new"
-  ],
+  "session_check_url": "https://us11111111.signalwire.com/payment_methods/new",
   "session_valid_selectors": [
     "[data-testid='user-menu']",
     "a[href*='logout']",
@@ -116,10 +113,10 @@
     ]
   },
   "submit_selectors": [
-    "button[type='submit']",
-    "input[type='submit']",
-    "button:has-text('Add')",
-    "button:has-text('Save')"
+    "input[type='submit'][name='commit'][value='Add Card']",
+    "input.btn.btn-confirm[value='Add Card']",
+    "input[data-disable-with='Processing...'][value='Add Card']",
+    "input[type='submit'][name='commit']"
   ],
   "success_selectors": [
     ".alert-success",
