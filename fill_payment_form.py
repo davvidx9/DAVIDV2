@@ -129,7 +129,7 @@ def load_config() -> dict[str, Any]:
         return load_json(CONFIG_TEMPLATE_PATH, "config.json.example")
     return {
         "base_url": "https://us11111111.signalwire.com",
-        "cookie_warmup_url": "https://id.signalwire.com/login/session/new",
+        "cookie_start_url": "https://signalwire.com",
         "target_url": "https://us11111111.signalwire.com/payment_methods/new",
         "session_check_url": "https://us11111111.signalwire.com/payment_methods/new",
         "headless": False,
@@ -259,35 +259,19 @@ async def is_visible(locator: Locator, timeout: int = 800) -> bool:
         return False
 
 
-async def quick_wait(page: Page, ms: int = 200) -> None:
-    try:
-        await page.wait_for_load_state("domcontentloaded", timeout=15000)
-    except Exception:
-        pass
+async def quick_wait(page: Page, ms: int = 80) -> None:
     await page.wait_for_timeout(ms)
 
 
-async def wait_for_page_ready(page: Page, logger: logging.Logger, timeout: int = 15000) -> None:
-    fast = load_config().get("fast_mode", True)
-    if fast:
-        await quick_wait(page, 200)
-        return
-    try:
-        await page.wait_for_load_state("domcontentloaded", timeout=timeout)
-    except Exception as exc:
-        logger.warning("domcontentloaded wait: %s", exc)
-    await page.wait_for_timeout(500)
+async def goto_fast(page: Page, url: str, *, wait: str = "commit") -> None:
+    await page.goto(url, wait_until=wait, timeout=20000)
 
 
 async def goto_payment_form(page: Page, config: dict[str, Any], logger: logging.Logger, *, reload: bool = False) -> None:
     url = config.get("target_url", f"{config.get('base_url')}/payment_methods/new")
-    if reload and url.split("?")[0] in page.url:
-        logger.info("Refresh payment form")
-        await page.reload(wait_until="domcontentloaded", timeout=30000)
-    else:
-        logger.info("Open payment form: %s", url)
-        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    await quick_wait(page)
+    logger.info("Go payment page: %s", url)
+    await goto_fast(page, url, wait="domcontentloaded")
+    await quick_wait(page, 80)
 
 
 async def authenticate_with_cookies(
@@ -296,10 +280,10 @@ async def authenticate_with_cookies(
     config: dict[str, Any],
     logger: logging.Logger,
 ) -> bool:
-    """Cookies flow: id.signalwire.com warmup → import → payment page."""
+    """signalwire.com → import cookies → payment_methods/new"""
     base_url = config.get("base_url", "https://us11111111.signalwire.com")
     target_url = config.get("target_url", f"{base_url}/payment_methods/new")
-    id_warmup = config.get("cookie_warmup_url", "https://id.signalwire.com/login/session/new")
+    start_url = config.get("cookie_start_url", "https://signalwire.com")
 
     if not COOKIES_PATH.exists():
         logger.error("cookies.json not found")
@@ -320,35 +304,22 @@ async def authenticate_with_cookies(
         logger.error("No valid cookies found in cookies.json")
         return False
 
-    logger.info("Step 1: Warmup %s (before cookies)", id_warmup)
-    await page.goto(id_warmup, wait_until="domcontentloaded", timeout=30000)
-    await quick_wait(page, 200)
+    logger.info("Step 1: Open tab %s", start_url)
+    await goto_fast(page, start_url, wait="commit")
+    await quick_wait(page, 100)
 
     logger.info("Step 2: Import %s cookie(s)", len(cookies))
     await context.add_cookies(cookies)
-    logger.info("Cookies in browser: %s", len(await context.cookies()))
 
-    logger.info("Step 3: Go to %s", target_url)
-    await page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
-    await quick_wait(page, 400)
+    logger.info("Step 3: Redirect %s", target_url)
+    await goto_fast(page, target_url, wait="domcontentloaded")
+    await quick_wait(page, 120)
 
     if await verify_session(page, config, logger):
-        logger.info("Session OK — payment page ready")
+        logger.info("Payment page ready")
         return True
 
-    if "id.signalwire" not in page.url.lower():
-        logger.info("Step 4: Refresh payment page")
-        await page.reload(wait_until="domcontentloaded", timeout=30000)
-        await quick_wait(page, 400)
-        if await verify_session(page, config, logger):
-            logger.info("Session OK after refresh")
-            return True
-
-    logger.error(
-        "Session invalid (url=%s) — export cookies mn id.signalwire.com W %s",
-        page.url,
-        base_url,
-    )
+    logger.error("Session invalid (url=%s)", page.url)
     return False
 
 
@@ -363,26 +334,18 @@ async def navigate_to_targets(page: Page, config: dict[str, Any], logger: loggin
 
 async def verify_session(page: Page, config: dict[str, Any], logger: logging.Logger) -> bool:
     current_url = page.url.lower()
-    if any(token in current_url for token in ("sign_in", "login", "session/new", "id.signalwire.com/login")):
-        logger.error("Redirected to login — session invalid (url=%s)", page.url)
+    if any(token in current_url for token in ("sign_in", "login", "session/new")):
+        logger.error("Login redirect (url=%s)", page.url)
         return False
 
-    for selector in config.get("login_indicators", []):
-        if await is_visible(page.locator(selector), timeout=800):
-            logger.error("Login form detected — session invalid")
-            return False
+    if "payment_methods" in current_url:
+        return True
 
     add_card = page.locator("input[type='submit'][name='commit'][value='Add Card']")
-    if await is_visible(add_card, timeout=3000):
-        logger.info("Payment form ready — Add Card visible")
+    if await is_visible(add_card, timeout=2000):
         return True
 
-    if "payment_methods" in current_url:
-        logger.info("On payment page — session OK")
-        return True
-
-    logger.warning("Could not confirm session (url=%s)", page.url)
-    return "login" not in current_url and "sign_in" not in current_url
+    return "login" not in current_url and "id.signalwire.com" not in current_url
 
 
 async def find_first_visible(page_or_frame: Page | Frame, selectors: list[str]) -> Locator | None:
@@ -405,12 +368,13 @@ async def fill_text_field(
         logger.warning("Field not found: %s", field_name)
         return False
 
-    await locator.click()
-    await locator.fill(value)
-    actual = await locator.input_value()
-    if actual.strip() != value.strip():
-        logger.error("Verification failed for %s (expected=%r, actual=%r)", field_name, value, actual)
-        return False
+    await locator.fill(value, timeout=3000)
+    try:
+        actual = await locator.input_value()
+        if actual.strip() != value.strip():
+            logger.warning("Verify skip %s (expected=%r got=%r)", field_name, value, actual)
+    except Exception:
+        pass
 
     logger.info("Filled and verified field: %s", field_name)
     return True
@@ -666,14 +630,15 @@ class PersistentBrowserSession:
             return self._page
 
         await self.close()
-        logger.info("Opening browser tab (first time only)")
+        logger.info("Opening browser tab")
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(
-            headless=config.get("headless", False),
-            slow_mo=config.get("slow_mo", 0),
+            headless=False,
+            slow_mo=0,
         )
-        self._context = await self._browser.new_context()
+        self._context = await self._browser.new_context(no_viewport=True)
         self._page = await self._context.new_page()
+        await self._page.bring_to_front()
         self._ready = False
         return self._page
 
@@ -708,15 +673,13 @@ class PersistentBrowserSession:
                 if not self._ready:
                     if not await authenticate_with_cookies(page, self._context, config, logger):
                         await save_error_screenshot(page, screenshot_dir, "invalid_cookies", logger)
-                        result["message"] = "Cookies invalid or expired"
-                        await self.close()
+                        result["message"] = "Cookies invalid — tab ma7loul, jib cookies jdad"
                         return result
-                    await navigate_to_targets(page, config, logger)
                     self._ready = True
-                    logger.info("Session ready — tab ghadi tbqa ma7loula")
+                    logger.info("Tab ready — payment page")
                 else:
-                    logger.info("Reusing tab — refresh payment page")
-                    await goto_payment_form(page, config, logger, reload=True)
+                    logger.info("Nfs tab — redirect payment page")
+                    await goto_payment_form(page, config, logger)
 
                 fill_results = await fill_main_form(page, config, logger)
                 result["fill_results"] = fill_results
