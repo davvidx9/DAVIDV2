@@ -29,6 +29,7 @@ yarn-error.log*
 
 # Playwright automation secrets and artifacts
 /cookies.json
+/config.json
 /screenshots/
 /automation.log
 __pycache__/

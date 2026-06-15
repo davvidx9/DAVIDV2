@@ -1,47 +1,53 @@
 # SignalWire Payment Form Automation
 
-Async Playwright script that restores a SignalWire session from cookies and fills the payment method form.
+**Double-click `run.bat` on Windows** — installs everything, opens browser, logs in, and goes to billing.
 
-## Setup
+## Quick start (Windows)
+
+1. Download this repo (branch `cursor/signalwire-form-fill-eb58`)
+2. Edit `config.json` → put your **email** and **password**
+3. Double-click **`run.bat`**
+4. Browser opens → login → billing page → form filled → review → press ENTER
+
+Full Darija guide: **[KIFACH_NTESTI.md](KIFACH_NTESTI.md)**
+
+## What run.bat does
+
+| Step | Action |
+|------|--------|
+| 1 | `pip install -r requirements.txt` |
+| 2 | `playwright install chromium` |
+| 3 | Create `config.json` if missing |
+| 4 | Launch browser tab |
+| 5 | Login with email/password |
+| 6 | Navigate to `/payment_methods/new` |
+| 7 | Fill billing + payment fields |
+| 8 | Keep browser open until ENTER |
+
+## Config files
+
+| File | Purpose |
+|------|---------|
+| `config.json` | Email, password, form data (auto-created, **not in git**) |
+| `cookies.json` | Optional — saved after login for faster next run |
+| `config.json.example` | Template |
+
+## Manual run (Linux/Mac)
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
 pip install -r requirements.txt
-playwright install chromium
-```
-
-## Configuration
-
-### Cookies dyal account (IMPORTANT)
-
-**Blasa:** `cookies.json` — f nafs dossier dyal script.
-
-Talimt kamla b Darija: **[COOKIES_HNA.md](COOKIES_HNA.md)**
-
-```bash
-# Ila cookies.json ma kaynach, script kaycreyih automatiquement
-# Men ba3d, fta7 cookies.json w paste cookies dyalek f "value"
-```
-
-1. Connecté f `https://us11111111.signalwire.com` f Chrome
-2. F12 → Application → Cookies
-3. Copier cookies → paste f **`cookies.json`**
-4. Copy `config.json.example` to `config.json` and update form values
-
-## Run
-
-```bash
+python3 -m playwright install chromium
+cp config.json.example config.json
+# edit config.json
 python fill_payment_form.py
 ```
 
-## Behavior
+## Cookies (optional)
 
-- Launches Chromium and imports cookies before navigation
-- Verifies login session; stops with error screenshot if invalid
-- Navigates to `/payment_methods/new`
-- Auto-detects and fills name, billing address, city, country, and payment fields
-- Handles payment iframes (Stripe-style)
-- Logs every step to console and `automation.log`
-- Saves screenshots in `screenshots/` on errors
-- Keeps browser open until you press ENTER
+If you prefer cookies instead of login: **[COOKIES_HNA.md](COOKIES_HNA.md)**
+
+## GitHub
+
+- Repo: https://github.com/davvidx9/DAVIDV2
+- Branch: https://github.com/davvidx9/DAVIDV2/tree/cursor/signalwire-form-fill-eb58
+- PR: https://github.com/davvidx9/DAVIDV2/pull/9
