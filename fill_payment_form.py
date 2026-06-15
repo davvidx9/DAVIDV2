@@ -16,7 +16,17 @@ from playwright.async_api import Browser, BrowserContext, Frame, Locator, Page, 
 
 ROOT = Path(__file__).resolve().parent
 COOKIES_PATH = ROOT / "cookies.json"
+COOKIES_TEMPLATE_PATH = ROOT / "cookies.template.json"
 CONFIG_PATH = ROOT / "config.json"
+CONFIG_TEMPLATE_PATH = ROOT / "config.json.example"
+
+PLACEHOLDER_MARKERS = (
+    "HOT HNA",
+    "PASTE",
+    "REPLACE_WITH",
+    "paste value",
+    "paste cookies",
+)
 
 
 def setup_logging(log_file: str) -> logging.Logger:
@@ -47,10 +57,60 @@ def load_json(path: Path, label: str) -> Any:
         return json.load(handle)
 
 
+def ensure_cookies_file() -> None:
+    """Create cookies.json from template so the user has a clear place to paste cookies."""
+    if COOKIES_PATH.exists():
+        return
+
+    if COOKIES_TEMPLATE_PATH.exists():
+        COOKIES_PATH.write_text(COOKIES_TEMPLATE_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+        return
+
+    # Fallback minimal template
+    template = """[
+  {
+    "name": "_signalwire_session",
+    "value": "HOT HNA COOKIES DYALEK — paste value dyal session hna",
+    "domain": ".signalwire.com",
+    "path": "/",
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  }
+]
+"""
+    COOKIES_PATH.write_text(template, encoding="utf-8")
+
+
+def cookies_still_placeholder(raw_cookies: list[dict[str, Any]]) -> bool:
+    for cookie in raw_cookies:
+        if not isinstance(cookie, dict):
+            continue
+        value = str(cookie.get("value", ""))
+        if any(marker.lower() in value.lower() for marker in PLACEHOLDER_MARKERS):
+            return True
+    return False
+
+
+def print_cookies_instructions() -> None:
+    print("\n" + "=" * 60)
+    print("FIN THOT COOKIES DYAL ACCOUNT DYALEK:")
+    print(f"  -> {COOKIES_PATH}")
+    print("\n1) Connecté f SignalWire f Chrome")
+    print("2) F12 -> Application -> Cookies -> signalwire.com")
+    print("3) Copier name + value dial cookies")
+    print(f"4) Paste f file: {COOKIES_PATH}")
+    print("5) 3awed run: python fill_payment_form.py")
+    print("\nTalimt kamla: COOKIES_HNA.md")
+    print("=" * 60 + "\n")
+
+
 def normalize_cookies(raw_cookies: list[dict[str, Any]], base_url: str) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     for cookie in raw_cookies:
-        item = dict(cookie)
+        item = {key: value for key, value in cookie.items() if not str(key).startswith("_")}
+        if "name" not in item or "value" not in item:
+            continue
         if "url" not in item and ("domain" not in item or "path" not in item):
             item.setdefault("url", base_url)
         normalized.append(item)
@@ -299,11 +359,23 @@ async def run() -> int:
     logger.info("Starting SignalWire payment form automation")
     logger.info("Loading config from %s", CONFIG_PATH)
 
+    ensure_cookies_file()
+
     try:
         raw_cookies = load_json(COOKIES_PATH, "cookies.json")
     except FileNotFoundError as exc:
         logger.error(str(exc))
+        print_cookies_instructions()
         print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    if cookies_still_placeholder(raw_cookies):
+        logger.error("cookies.json still contains placeholder values")
+        print_cookies_instructions()
+        print(
+            f"ERROR: 3mer cookies dyalek f {COOKIES_PATH} qbel ma tcontinui.",
+            file=sys.stderr,
+        )
         return 1
 
     cookies = normalize_cookies(raw_cookies, base_url)
