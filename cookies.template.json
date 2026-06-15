@@ -1,0 +1,21 @@
+[
+  {
+    "_comment": "HNA fin kat7ot cookies dyal account dyalek — bdel ghir 'value' w 'name' ila khassk",
+    "name": "_signalwire_session",
+    "value": "HOT HNA COOKIES DYALEK — paste value dyal session hna",
+    "domain": ".signalwire.com",
+    "path": "/",
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "autre_cookie",
+    "value": "HOT HNA VALUE DYAL COOKIE TANI ila kayn",
+    "domain": "us11111111.signalwire.com",
+    "path": "/",
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Lax"
+  }
+]
