@@ -1,8 +1,11 @@
 {
   "base_url": "https://us11111111.signalwire.com",
-  "session_check_url": "https://us11111111.signalwire.com",
+  "cookie_warmup_url": "https://id.signalwire.com/login/session/new",
+  "dashboard_url": "https://us11111111.signalwire.com/dashboard",
+  "session_check_url": "https://us11111111.signalwire.com/dashboard",
   "target_url": "https://us11111111.signalwire.com/payment_methods/new",
   "navigate_urls": [
+    "https://us11111111.signalwire.com/dashboard",
     "https://us11111111.signalwire.com/payment_methods/new"
   ],
   "session_valid_selectors": [

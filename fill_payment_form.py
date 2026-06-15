@@ -126,8 +126,10 @@ def load_config() -> dict[str, Any]:
         return load_json(CONFIG_TEMPLATE_PATH, "config.json.example")
     return {
         "base_url": "https://us11111111.signalwire.com",
+        "cookie_warmup_url": "https://id.signalwire.com/login/session/new",
+        "dashboard_url": "https://us11111111.signalwire.com/dashboard",
         "target_url": "https://us11111111.signalwire.com/payment_methods/new",
-        "session_check_url": "https://us11111111.signalwire.com",
+        "session_check_url": "https://us11111111.signalwire.com/dashboard",
         "headless": False,
         "slow_mo": 100,
         "screenshot_dir": "screenshots",
@@ -253,14 +255,65 @@ async def is_visible(locator: Locator, timeout: int = 1500) -> bool:
         return False
 
 
+async def wait_for_page_ready(page: Page, logger: logging.Logger, timeout: int = 20000) -> None:
+    """Wait for page without failing on networkidle (SignalWire keeps connections open)."""
+    try:
+        await page.wait_for_load_state("domcontentloaded", timeout=timeout)
+    except Exception as exc:
+        logger.warning("domcontentloaded wait: %s", exc)
+    try:
+        await page.wait_for_load_state("load", timeout=10000)
+    except Exception:
+        pass
+    try:
+        await page.wait_for_load_state("networkidle", timeout=8000)
+    except Exception:
+        logger.warning("networkidle timeout — kaykemel (normal f SignalWire)")
+    await page.wait_for_timeout(2000)
+
+
+async def import_cookies_by_domain(
+    page: Page,
+    context: BrowserContext,
+    cookies: list[dict[str, Any]],
+    logger: logging.Logger,
+) -> int:
+    """Visit each cookie domain first, then import cookies for that domain."""
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for cookie in cookies:
+        domain = str(cookie.get("domain", "")).strip() or "signalwire.com"
+        grouped.setdefault(domain, []).append(cookie)
+
+    imported = 0
+    for domain, domain_cookies in grouped.items():
+        host = domain.lstrip(".")
+        warmup = f"https://{host}/"
+        logger.info("Warmup visit before cookies: %s (%s cookie(s))", warmup, len(domain_cookies))
+        try:
+            await page.goto(warmup, wait_until="domcontentloaded", timeout=60000)
+            await wait_for_page_ready(page, logger)
+        except Exception as exc:
+            logger.warning("Warmup failed for %s: %s — trying import anyway", warmup, exc)
+
+        await context.add_cookies(domain_cookies)
+        imported += len(domain_cookies)
+        logger.info("Imported %s cookie(s) for domain %s", len(domain_cookies), domain)
+
+    current = await context.cookies()
+    logger.info("Total cookies in browser after import: %s", len(current))
+    return imported
+
+
 async def authenticate_with_cookies(
     page: Page,
     context: BrowserContext,
     config: dict[str, Any],
     logger: logging.Logger,
 ) -> bool:
-    """Login ghir b cookies — bla email w bla password."""
+    """Login ghir b cookies — warmup id.signalwire.com, import, redirect dashboard."""
     base_url = config.get("base_url", "https://us11111111.signalwire.com")
+    warmup_url = config.get("cookie_warmup_url", "https://id.signalwire.com/login/session/new")
+    dashboard_url = config.get("dashboard_url", f"{base_url}/dashboard")
 
     if not COOKIES_PATH.exists():
         logger.error("cookies.json not found")
@@ -281,14 +334,30 @@ async def authenticate_with_cookies(
         logger.error("No valid cookies found in cookies.json")
         return False
 
-    logger.info("Importing %s cookie(s) from %s", len(cookies), COOKIES_PATH)
-    await context.add_cookies(cookies)
+    logger.info("Step 1: Open login session page BEFORE cookies: %s", warmup_url)
+    try:
+        await page.goto(warmup_url, wait_until="domcontentloaded", timeout=60000)
+        await wait_for_page_ready(page, logger)
+    except Exception as exc:
+        logger.warning("Warmup page load issue: %s — continuing", exc)
+
+    logger.info("Step 2: Importing %s cookie(s) from %s", len(cookies), COOKIES_PATH)
+    await import_cookies_by_domain(page, context, cookies, logger)
+
+    logger.info("Step 3: Redirect to dashboard: %s", dashboard_url)
+    try:
+        response = await page.goto(dashboard_url, wait_until="domcontentloaded", timeout=60000)
+        await wait_for_page_ready(page, logger)
+        logger.info("Dashboard loaded (status=%s, url=%s)", response.status if response else "?", page.url)
+    except Exception as exc:
+        logger.error("Dashboard redirect failed: %s", exc)
+        return False
 
     if await verify_session(page, config, logger):
         logger.info("Cookie session restored — account connected")
         return True
 
-    logger.error("Cookies imported but session is invalid or expired")
+    logger.error("Cookies imported but session is invalid or expired (url=%s)", page.url)
     return False
 
 
@@ -300,21 +369,28 @@ async def navigate_to_targets(page: Page, config: dict[str, Any], logger: loggin
 
     for url in urls:
         logger.info("Navigating to: %s", url)
-        response = await page.goto(url, wait_until="domcontentloaded", timeout=45000)
-        await page.wait_for_load_state("networkidle", timeout=45000)
+        response = await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        await wait_for_page_ready(page, logger)
         logger.info("Page loaded: %s (status=%s)", url, response.status if response else "unknown")
 
 
 async def verify_session(page: Page, config: dict[str, Any], logger: logging.Logger) -> bool:
-    check_url = config.get("session_check_url") or config.get("base_url")
+    dashboard_url = config.get("dashboard_url")
+    check_url = dashboard_url or config.get("session_check_url") or config.get("base_url")
     logger.info("Verifying authenticated session at %s", check_url)
 
-    response = await page.goto(check_url, wait_until="domcontentloaded")
-    await page.wait_for_load_state("networkidle", timeout=30000)
-
-    if response and response.status >= 400:
-        logger.error("Session check failed with HTTP status %s", response.status)
-        return False
+    if dashboard_url and dashboard_url not in page.url:
+        try:
+            response = await page.goto(check_url, wait_until="domcontentloaded", timeout=60000)
+            await wait_for_page_ready(page, logger)
+            if response and response.status >= 400:
+                logger.error("Session check failed with HTTP status %s", response.status)
+                return False
+        except Exception as exc:
+            logger.error("Session check navigation failed: %s", exc)
+            return False
+    else:
+        await wait_for_page_ready(page, logger)
 
     for selector in config.get("login_indicators", []):
         if await is_visible(page.locator(selector)):
@@ -330,9 +406,13 @@ async def verify_session(page: Page, config: dict[str, Any], logger: logging.Log
         logger.warning("No explicit authenticated marker found; continuing with URL-based check")
 
     current_url = page.url.lower()
-    if any(token in current_url for token in ("sign_in", "login", "auth")):
-        logger.error("Redirected to login page — session is invalid")
+    if any(token in current_url for token in ("sign_in", "login", "session/new", "auth")):
+        logger.error("Redirected to login page — session is invalid (url=%s)", page.url)
         return False
+
+    if "dashboard" in current_url:
+        logger.info("Session valid — dashboard reached")
+        return True
 
     logger.info("Session appears valid (no login redirect detected)")
     return True
