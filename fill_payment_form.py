@@ -78,6 +78,86 @@ def load_json(path: Path, label: str) -> Any:
         return json.load(handle)
 
 
+def parse_cookies_text(text: str) -> list[dict[str, Any]]:
+    """Parse cookies.json even if user pasted multiple JSON blocks."""
+    cleaned = text.strip().lstrip("\ufeff")
+    if not cleaned:
+        raise ValueError("cookies.json فارغ")
+
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError as exc:
+        if "Extra data" not in str(exc):
+            raise ValueError(f"cookies.json format ghalat — {exc}") from exc
+
+        decoder = json.JSONDecoder()
+        idx = 0
+        merged: list[dict[str, Any]] = []
+        while idx < len(cleaned):
+            while idx < len(cleaned) and cleaned[idx] in " \t\n\r,":
+                idx += 1
+            if idx >= len(cleaned):
+                break
+            chunk, end = decoder.raw_decode(cleaned, idx)
+            idx = end
+            if isinstance(chunk, list):
+                merged.extend(item for item in chunk if isinstance(item, dict))
+            elif isinstance(chunk, dict):
+                if "cookies" in chunk and isinstance(chunk["cookies"], list):
+                    merged.extend(item for item in chunk["cookies"] if isinstance(item, dict))
+                else:
+                    merged.append(chunk)
+
+        if not merged:
+            raise ValueError(
+                "cookies.json فيه extra data — paste ghir liste wa7da [ {...}, {...} ]"
+            ) from exc
+        data = merged
+
+    if isinstance(data, dict):
+        if isinstance(data.get("cookies"), list):
+            data = data["cookies"]
+        else:
+            data = [data]
+
+    if not isinstance(data, list):
+        raise ValueError("cookies.json khasso ykon [ {cookie1}, {cookie2} ]")
+
+    cookies = [item for item in data if isinstance(item, dict)]
+    if not cookies:
+        raise ValueError("cookies.json ma فيهش cookies s7a7")
+    return cookies
+
+
+def load_cookies_file() -> list[dict[str, Any]]:
+    if not COOKIES_PATH.exists():
+        raise FileNotFoundError(f"cookies.json not found: {COOKIES_PATH}")
+
+    raw_text = COOKIES_PATH.read_text(encoding="utf-8")
+    cookies = parse_cookies_text(raw_text)
+
+    # Auto-fix file if it had multiple JSON blocks / invalid extra data
+    fixed_text = json.dumps(cookies, indent=2, ensure_ascii=False)
+    if raw_text.strip() != fixed_text.strip():
+        COOKIES_PATH.write_text(fixed_text + "\n", encoding="utf-8")
+
+    return cookies
+
+
+def print_cookies_json_error(exc: Exception) -> None:
+    print("\n" + "=" * 60)
+    print("cookies.json GHALAT — JSON ma validch")
+    print(f"  -> {COOKIES_PATH}")
+    print(f"\nError: {exc}")
+    print("\nFormat s7i7 (liste wa7da):")
+    print("""[
+  {"name": "cookie1", "value": "...", "domain": ".signalwire.com", "path": "/"},
+  {"name": "cookie2", "value": "...", "domain": "id.signalwire.com", "path": "/"}
+]""")
+    print("\nMa tpasteich 2 export — ghir merge kol cookies f liste wa7da [ ]")
+    print("=" * 60 + "\n")
+
+
 def ensure_cookies_file() -> None:
     """Create cookies.json from template so the user has a clear place to paste cookies."""
     if COOKIES_PATH.exists():
@@ -301,7 +381,7 @@ async def authenticate_with_cookies(
         return False
 
     try:
-        raw_cookies = load_json(COOKIES_PATH, "cookies.json")
+        raw_cookies = load_cookies_file()
     except Exception as exc:
         logger.error("Failed to read cookies.json: %s", exc)
         return False
@@ -788,7 +868,7 @@ async def run_automation(
         return result
 
     try:
-        raw_cookies = load_json(COOKIES_PATH, "cookies.json")
+        raw_cookies = load_cookies_file()
     except Exception as exc:
         result["message"] = str(exc)
         return result
@@ -868,8 +948,9 @@ async def run() -> int:
         return 1
 
     try:
-        raw_cookies = load_json(COOKIES_PATH, "cookies.json")
+        raw_cookies = load_cookies_file()
     except Exception as exc:
+        print_cookies_json_error(exc)
         print_cookies_instructions()
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
