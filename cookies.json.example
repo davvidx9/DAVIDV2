@@ -1,0 +1,11 @@
+[
+  {
+    "name": "_session_id",
+    "value": "REPLACE_WITH_YOUR_SESSION_VALUE",
+    "domain": ".signalwire.com",
+    "path": "/",
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  }
+]

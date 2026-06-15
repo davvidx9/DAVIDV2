@@ -1,0 +1,108 @@
+{
+  "target_url": "https://us11111111.signalwire.com/payment_methods/new",
+  "base_url": "https://us11111111.signalwire.com",
+  "session_check_url": "https://us11111111.signalwire.com",
+  "session_valid_selectors": [
+    "[data-testid='user-menu']",
+    "a[href*='logout']",
+    "a[href*='sign_out']",
+    ".user-menu",
+    "#user-menu"
+  ],
+  "login_indicators": [
+    "input[type='password'][name*='password']",
+    "form[action*='sign_in']",
+    "form[action*='login']",
+    "#login-form",
+    "button:has-text('Sign in')",
+    "button:has-text('Log in')"
+  ],
+  "form": {
+    "name": "John Doe",
+    "billing_address": "123 Main Street",
+    "city": "New York",
+    "country": "United States",
+    "state": "NY",
+    "postal_code": "10001",
+    "payment": {
+      "card_number": "4242424242424242",
+      "expiry": "12/30",
+      "cvc": "123",
+      "cardholder_name": "John Doe"
+    }
+  },
+  "field_mappings": {
+    "name": [
+      "input[name*='name' i]",
+      "input[id*='name' i]",
+      "input[placeholder*='name' i]",
+      "input[autocomplete='name']",
+      "input[autocomplete='cc-name']"
+    ],
+    "billing_address": [
+      "input[name*='address' i]",
+      "input[id*='address' i]",
+      "input[placeholder*='address' i]",
+      "input[autocomplete='street-address']",
+      "textarea[name*='address' i]"
+    ],
+    "city": [
+      "input[name*='city' i]",
+      "input[id*='city' i]",
+      "input[placeholder*='city' i]",
+      "input[autocomplete='address-level2']"
+    ],
+    "country": [
+      "select[name*='country' i]",
+      "select[id*='country' i]",
+      "input[name*='country' i]",
+      "input[autocomplete='country']"
+    ],
+    "state": [
+      "select[name*='state' i]",
+      "input[name*='state' i]",
+      "input[autocomplete='address-level1']"
+    ],
+    "postal_code": [
+      "input[name*='zip' i]",
+      "input[name*='postal' i]",
+      "input[autocomplete='postal-code']"
+    ]
+  },
+  "payment_iframe_patterns": [
+    "iframe[name*='stripe' i]",
+    "iframe[src*='stripe' i]",
+    "iframe[title*='card' i]",
+    "iframe[title*='payment' i]",
+    "iframe[title*='secure' i]"
+  ],
+  "payment_field_patterns": {
+    "card_number": [
+      "input[name='cardnumber']",
+      "input[name*='card' i][name*='number' i]",
+      "input[placeholder*='card number' i]",
+      "input[autocomplete='cc-number']"
+    ],
+    "expiry": [
+      "input[name='exp-date']",
+      "input[name*='exp' i]",
+      "input[placeholder*='MM' i]",
+      "input[autocomplete='cc-exp']"
+    ],
+    "cvc": [
+      "input[name='cvc']",
+      "input[name='cc-csc']",
+      "input[placeholder*='CVC' i]",
+      "input[autocomplete='cc-csc']"
+    ],
+    "cardholder_name": [
+      "input[name*='name' i]",
+      "input[placeholder*='name on card' i]",
+      "input[autocomplete='cc-name']"
+    ]
+  },
+  "headless": false,
+  "slow_mo": 100,
+  "screenshot_dir": "screenshots",
+  "log_file": "automation.log"
+}

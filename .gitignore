@@ -26,3 +26,11 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Playwright automation secrets and artifacts
+/cookies.json
+/screenshots/
+/automation.log
+__pycache__/
+*.pyc
+.venv/
