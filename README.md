@@ -1,53 +1,42 @@
-# SignalWire Payment Form Automation
+# SignalWire Automation — Cookies Only
 
-**Double-click `run.bat` on Windows** — installs everything, opens browser, logs in, and goes to billing.
+**Ghir cookies. Bla email. Bla password.**
 
-## Quick start (Windows)
+Double-click **`run.bat`** → browser ytftah → account yconnecta → billing page → form.
 
-1. Download this repo (branch `cursor/signalwire-form-fill-eb58`)
-2. Edit `config.json` → put your **email** and **password**
+## Quick start
+
+1. Download branch: https://github.com/davvidx9/DAVIDV2/tree/cursor/signalwire-form-fill-eb58
+2. Paste your session cookies in **`cookies.json`**
 3. Double-click **`run.bat`**
-4. Browser opens → login → billing page → form filled → review → press ENTER
 
-Full Darija guide: **[KIFACH_NTESTI.md](KIFACH_NTESTI.md)**
+## What you edit
 
-## What run.bat does
+| File | Edit? |
+|------|-------|
+| **`cookies.json`** | **YES** — paste cookies hna |
+| `config.json` | No (auto-created, URLs pre-configured) |
+| `run.bat` | No — just double-click |
 
-| Step | Action |
-|------|--------|
-| 1 | `pip install -r requirements.txt` |
-| 2 | `playwright install chromium` |
-| 3 | Create `config.json` if missing |
-| 4 | Launch browser tab |
-| 5 | Login with email/password |
-| 6 | Navigate to `/payment_methods/new` |
-| 7 | Fill billing + payment fields |
-| 8 | Keep browser open until ENTER |
+## Flow
 
-## Config files
-
-| File | Purpose |
-|------|---------|
-| `config.json` | Email, password, form data (auto-created, **not in git**) |
-| `cookies.json` | Optional — saved after login for faster next run |
-| `config.json.example` | Template |
-
-## Manual run (Linux/Mac)
-
-```bash
-pip install -r requirements.txt
-python3 -m playwright install chromium
-cp config.json.example config.json
-# edit config.json
-python fill_payment_form.py
+```
+run.bat
+  → install deps + Chromium
+  → load cookies.json
+  → open browser
+  → restore session (cookies)
+  → go to payment_methods/new
+  → fill form
+  → wait for ENTER
 ```
 
-## Cookies (optional)
+## Guides
 
-If you prefer cookies instead of login: **[COOKIES_HNA.md](COOKIES_HNA.md)**
+- [KIFACH_NTESTI.md](KIFACH_NTESTI.md) — Darija
+- [COOKIES_HNA.md](COOKIES_HNA.md) — kifach tjib cookies
 
 ## GitHub
 
-- Repo: https://github.com/davvidx9/DAVIDV2
 - Branch: https://github.com/davvidx9/DAVIDV2/tree/cursor/signalwire-form-fill-eb58
 - PR: https://github.com/davvidx9/DAVIDV2/pull/9

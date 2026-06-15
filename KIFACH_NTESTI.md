@@ -1,46 +1,39 @@
-# Kifach ttesti (Windows) — double-click run.bat
+# Kifach ttesti — ghir cookies
 
-## 1) Download mn GitHub
+## 1) Download
 
-Clone wla download ZIP:
+https://github.com/davvidx9/DAVIDV2/tree/cursor/signalwire-form-fill-eb58
 
-**Branch:** https://github.com/davvidx9/DAVIDV2/tree/cursor/signalwire-form-fill-eb58
+## 2) Paste cookies (wa7ed lmarra)
 
-```bash
-git clone -b cursor/signalwire-form-fill-eb58 https://github.com/davvidx9/DAVIDV2.git
-cd DAVIDV2
-```
-
-## 2) 3mer account dyalek (marra wa7da)
-
-Fta7 `config.json` (ila ma kaynach, `run.bat` ghadi ycreyih) w beddel:
+Fta7 **`cookies.json`** w 7ot cookies dyal account mconnecté:
 
 ```json
-"account": {
-  "email": "email dyalek hna",
-  "password": "password dyalek hna"
-}
+[
+  {
+    "name": "smiya_dial_cookie",
+    "value": "VALUE_HNA",
+    "domain": ".signalwire.com",
+    "path": "/"
+  }
+]
 ```
+
+**Ma khassk email wla password — ghir cookies.**
+
+Talimt: [COOKIES_HNA.md](COOKIES_HNA.md)
 
 ## 3) Double-click `run.bat`
 
-`run.bat` kaydir kolchi automatiquement:
+Kaydir kolchi auto:
 
-1. Install Python packages
-2. Install Chromium (Playwright)
-3. Create config ila ma kaynach
-4. Fta7 browser (tab)
-5. Login l account
-6. Mchi l page dial billing
-7. 3mer form
-8. Browser kaybqa ma7loul — review w press ENTER
+1. Install packages + Chromium
+2. Import cookies → login l account
+3. Fta7 browser
+4. Mchi l billing page automatiquement
+5. 3mer form
+6. Browser kaybqa ma7loul — ENTER bash tseddo
 
-## 4) Ila kan chi mochkil
+## 4) Men ba3d ma ttesti
 
-- Chouf `automation.log`
-- Chouf screenshots f `screenshots/`
-- Verifier email/password f `config.json`
-
-## 5) Men ba3d ma ttesti
-
-Goliya wach khdam w nkmlo l khota l akher (submit, selectors, etc.)
+Goliya wach khdam w nkmlo shnu bghiti tzid.

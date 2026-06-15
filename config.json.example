@@ -1,17 +1,10 @@
 {
-  "auth_mode": "auto",
-  "account": {
-    "email": "YOUR_EMAIL_HERE",
-    "password": "YOUR_PASSWORD_HERE"
-  },
-  "login_urls": [
-    "https://us11111111.signalwire.com/users/sign_in",
-    "https://us11111111.signalwire.com/login",
-    "https://signalwire.com/accounts/sign_in"
-  ],
-  "target_url": "https://us11111111.signalwire.com/payment_methods/new",
   "base_url": "https://us11111111.signalwire.com",
   "session_check_url": "https://us11111111.signalwire.com",
+  "target_url": "https://us11111111.signalwire.com/payment_methods/new",
+  "navigate_urls": [
+    "https://us11111111.signalwire.com/payment_methods/new"
+  ],
   "session_valid_selectors": [
     "[data-testid='user-menu']",
     "a[href*='logout']",

@@ -26,12 +26,6 @@ PLACEHOLDER_MARKERS = (
     "REPLACE_WITH",
     "paste value",
     "paste cookies",
-    "YOUR_EMAIL",
-    "YOUR_PASSWORD",
-    "email@example.com",
-    "your_password",
-    "ton_email",
-    "ton_password",
 )
 
 
@@ -99,37 +93,28 @@ def cookies_still_placeholder(raw_cookies: list[dict[str, Any]]) -> bool:
 
 
 def ensure_config_file() -> None:
-    """Create config.json from example so the user can edit email/password."""
+    """Create config.json from example (URLs + form — ma khassk tbeddlha)."""
     if CONFIG_PATH.exists():
         return
     if CONFIG_TEMPLATE_PATH.exists():
         CONFIG_PATH.write_text(CONFIG_TEMPLATE_PATH.read_text(encoding="utf-8"), encoding="utf-8")
 
 
-def is_placeholder(value: str) -> bool:
-    cleaned = value.strip()
-    if not cleaned:
-        return True
-    return any(marker.lower() in cleaned.lower() for marker in PLACEHOLDER_MARKERS)
-
-
-def account_credentials_ready(config: dict[str, Any]) -> bool:
-    account = config.get("account", {})
-    email = str(account.get("email", "")).strip()
-    password = str(account.get("password", "")).strip()
-    return bool(email and password and not is_placeholder(email) and not is_placeholder(password))
-
-
-def print_account_instructions() -> None:
-    print("\n" + "=" * 60)
-    print("3MER ACCOUNT DYALEK F config.json:")
-    print(f"  -> {CONFIG_PATH}")
-    print("\n\"account\": {")
-    print('    "email": "email dyalek hna",')
-    print('    "password": "password dyalek hna"')
-    print("}")
-    print("\nMen ba3d: double-click run.bat")
-    print("=" * 60 + "\n")
+def load_config() -> dict[str, Any]:
+    ensure_config_file()
+    if CONFIG_PATH.exists():
+        return load_json(CONFIG_PATH, "config.json")
+    if CONFIG_TEMPLATE_PATH.exists():
+        return load_json(CONFIG_TEMPLATE_PATH, "config.json.example")
+    return {
+        "base_url": "https://us11111111.signalwire.com",
+        "target_url": "https://us11111111.signalwire.com/payment_methods/new",
+        "session_check_url": "https://us11111111.signalwire.com",
+        "headless": False,
+        "slow_mo": 100,
+        "screenshot_dir": "screenshots",
+        "log_file": "automation.log",
+    }
 
 
 def print_cookies_instructions() -> None:
@@ -140,7 +125,7 @@ def print_cookies_instructions() -> None:
     print("2) F12 -> Application -> Cookies -> signalwire.com")
     print("3) Copier name + value dial cookies")
     print(f"4) Paste f file: {COOKIES_PATH}")
-    print("5) 3awed run: python fill_payment_form.py")
+    print("5) 3awed double-click run.bat")
     print("\nTalimt kamla: COOKIES_HNA.md")
     print("=" * 60 + "\n")
 
@@ -178,132 +163,56 @@ async def is_visible(locator: Locator, timeout: int = 1500) -> bool:
         return False
 
 
-async def save_context_cookies(context: BrowserContext, base_url: str, logger: logging.Logger) -> None:
-    cookies = await context.cookies()
-    if not cookies:
-        return
-    serializable = []
-    for cookie in cookies:
-        item = {key: cookie[key] for key in cookie if key in {
-            "name", "value", "domain", "path", "expires", "httpOnly", "secure", "sameSite"
-        }}
-        serializable.append(item)
-    COOKIES_PATH.write_text(json.dumps(serializable, indent=2), encoding="utf-8")
-    logger.info("Saved %s cookie(s) to %s for next run", len(serializable), COOKIES_PATH)
-
-
-async def login_with_credentials(page: Page, config: dict[str, Any], logger: logging.Logger) -> bool:
-    account = config.get("account", {})
-    email = str(account.get("email", "")).strip()
-    password = str(account.get("password", "")).strip()
-    base_url = config.get("base_url", "https://us11111111.signalwire.com")
-
-    login_urls = config.get("login_urls") or [
-        config.get("login_url"),
-        f"{base_url}/users/sign_in",
-        f"{base_url}/login",
-        f"{base_url}/accounts/sign_in",
-        "https://signalwire.com/accounts/sign_in",
-    ]
-    login_urls = [url for url in login_urls if url]
-
-    email_selectors = config.get("login_email_selectors", [
-        "input[type='email']",
-        "input[name*='email' i]",
-        "input[id*='email' i]",
-        "input[autocomplete='username']",
-        "input[name='user[email]']",
-    ])
-    password_selectors = config.get("login_password_selectors", [
-        "input[type='password']",
-        "input[name*='password' i]",
-        "input[id*='password' i]",
-        "input[name='user[password]']",
-    ])
-    submit_selectors = config.get("login_submit_selectors", [
-        "button[type='submit']",
-        "input[type='submit']",
-        "button:has-text('Sign in')",
-        "button:has-text('Log in')",
-        "button:has-text('Login')",
-    ])
-
-    for login_url in login_urls:
-        logger.info("Trying login page: %s", login_url)
-        try:
-            await page.goto(login_url, wait_until="domcontentloaded", timeout=45000)
-            await page.wait_for_load_state("networkidle", timeout=30000)
-        except Exception as exc:
-            logger.warning("Could not open %s: %s", login_url, exc)
-            continue
-
-        email_field = await find_first_visible(page, email_selectors)
-        password_field = await find_first_visible(page, password_selectors)
-        if email_field is None or password_field is None:
-            logger.warning("Login form not found on %s", login_url)
-            continue
-
-        logger.info("Filling login credentials")
-        await email_field.fill(email)
-        await password_field.fill(password)
-
-        submit = await find_first_visible(page, submit_selectors)
-        if submit is not None:
-            await submit.click()
-        else:
-            await password_field.press("Enter")
-
-        try:
-            await page.wait_for_load_state("networkidle", timeout=45000)
-        except Exception:
-            pass
-
-        await page.wait_for_timeout(2000)
-
-        if await verify_session(page, config, logger):
-            logger.info("Login successful")
-            return True
-
-        logger.warning("Login attempt on %s did not produce a valid session", login_url)
-
-    return False
-
-
-async def authenticate(
+async def authenticate_with_cookies(
     page: Page,
     context: BrowserContext,
     config: dict[str, Any],
     logger: logging.Logger,
 ) -> bool:
+    """Login ghir b cookies — bla email w bla password."""
     base_url = config.get("base_url", "https://us11111111.signalwire.com")
-    auth_mode = str(config.get("auth_mode", "auto")).lower()
 
-    use_login = auth_mode in {"auto", "login", "credentials"} and account_credentials_ready(config)
-    use_cookies = auth_mode in {"auto", "cookies"}
+    if not COOKIES_PATH.exists():
+        logger.error("cookies.json not found")
+        return False
 
-    if use_login:
-        logger.info("Authentication mode: login with email/password")
-        if await login_with_credentials(page, config, logger):
-            await save_context_cookies(context, base_url, logger)
-            return True
-        logger.warning("Login failed, trying cookies fallback...")
-        await context.clear_cookies()
+    try:
+        raw_cookies = load_json(COOKIES_PATH, "cookies.json")
+    except Exception as exc:
+        logger.error("Failed to read cookies.json: %s", exc)
+        return False
 
-    if use_cookies and COOKIES_PATH.exists():
-        try:
-            raw_cookies = load_json(COOKIES_PATH, "cookies.json")
-            if not cookies_still_placeholder(raw_cookies):
-                cookies = normalize_cookies(raw_cookies, base_url)
-                logger.info("Importing %s cookie(s) from %s", len(cookies), COOKIES_PATH)
-                await context.add_cookies(cookies)
-                if await verify_session(page, config, logger):
-                    logger.info("Cookie session restored successfully")
-                    return True
-                logger.error("Cookies imported but session is invalid")
-        except Exception as exc:
-            logger.error("Cookie auth failed: %s", exc)
+    if cookies_still_placeholder(raw_cookies):
+        logger.error("cookies.json still has placeholder values")
+        return False
 
+    cookies = normalize_cookies(raw_cookies, base_url)
+    if not cookies:
+        logger.error("No valid cookies found in cookies.json")
+        return False
+
+    logger.info("Importing %s cookie(s) from %s", len(cookies), COOKIES_PATH)
+    await context.add_cookies(cookies)
+
+    if await verify_session(page, config, logger):
+        logger.info("Cookie session restored — account connected")
+        return True
+
+    logger.error("Cookies imported but session is invalid or expired")
     return False
+
+
+async def navigate_to_targets(page: Page, config: dict[str, Any], logger: logging.Logger) -> None:
+    """Auto-navigate to configured URLs after login."""
+    base_url = config.get("base_url", "https://us11111111.signalwire.com")
+    target_url = config.get("target_url", f"{base_url}/payment_methods/new")
+    urls = config.get("navigate_urls") or [target_url]
+
+    for url in urls:
+        logger.info("Navigating to: %s", url)
+        response = await page.goto(url, wait_until="domcontentloaded", timeout=45000)
+        await page.wait_for_load_state("networkidle", timeout=45000)
+        logger.info("Page loaded: %s (status=%s)", url, response.status if response else "unknown")
 
 
 async def verify_session(page: Page, config: dict[str, Any], logger: logging.Logger) -> bool:
@@ -517,42 +426,29 @@ async def fill_main_form(page: Page, config: dict[str, Any], logger: logging.Log
 
 
 async def run() -> int:
-    ensure_config_file()
-
-    if not CONFIG_PATH.exists():
-        print_account_instructions()
-        print(f"ERROR: config.json not found at {CONFIG_PATH}", file=sys.stderr)
-        return 1
-
-    config = load_json(CONFIG_PATH, "config.json")
+    ensure_cookies_file()
+    config = load_config()
     logger = setup_logging(config.get("log_file", "automation.log"))
     screenshot_dir = ROOT / config.get("screenshot_dir", "screenshots")
 
-    base_url = config.get("base_url", "https://us11111111.signalwire.com")
-    target_url = config.get("target_url", f"{base_url}/payment_methods/new")
+    logger.info("Starting SignalWire automation (cookies only — bla email/password)")
 
-    logger.info("Starting SignalWire payment form automation")
-    logger.info("Loading config from %s", CONFIG_PATH)
+    if not COOKIES_PATH.exists():
+        print_cookies_instructions()
+        print(f"ERROR: cookies.json not found — paste cookies f {COOKIES_PATH}", file=sys.stderr)
+        return 1
 
-    if not account_credentials_ready(config):
-        ensure_cookies_file()
-        if COOKIES_PATH.exists():
-            try:
-                raw = load_json(COOKIES_PATH, "cookies.json")
-                if cookies_still_placeholder(raw):
-                    print_account_instructions()
-                    print_cookies_instructions()
-                    print(
-                        f"ERROR: 3mer account f {CONFIG_PATH} wla cookies f {COOKIES_PATH}",
-                        file=sys.stderr,
-                    )
-                    return 1
-            except Exception:
-                print_account_instructions()
-                return 1
-        else:
-            print_account_instructions()
-            return 1
+    try:
+        raw_cookies = load_json(COOKIES_PATH, "cookies.json")
+    except Exception as exc:
+        print_cookies_instructions()
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    if cookies_still_placeholder(raw_cookies):
+        print_cookies_instructions()
+        print(f"ERROR: 3mer cookies dyalek f {COOKIES_PATH} qbel ma tcontinui.", file=sys.stderr)
+        return 1
 
     browser: Browser | None = None
     context: BrowserContext | None = None
@@ -569,32 +465,29 @@ async def run() -> int:
             context = await browser.new_context()
             page = await context.new_page()
 
-            if not await authenticate(page, context, config, logger):
-                await save_error_screenshot(page, screenshot_dir, "auth_failed", logger)
-                print("ERROR: Ma qdrnach ndkhlou l account. Chouf email/password f config.json", file=sys.stderr)
-                logger.error("Authentication failed")
+            if not await authenticate_with_cookies(page, context, config, logger):
+                await save_error_screenshot(page, screenshot_dir, "invalid_cookies", logger)
+                print_cookies_instructions()
+                print("ERROR: Cookies invalid wla expired. Jib cookies jdad w 3awed run.", file=sys.stderr)
                 return 1
 
-            logger.info("Navigating to billing page: %s", target_url)
-            response = await page.goto(target_url, wait_until="domcontentloaded")
-            await page.wait_for_load_state("networkidle", timeout=45000)
-            logger.info("Billing page loaded (status=%s)", response.status if response else "unknown")
+            await navigate_to_targets(page, config, logger)
 
             fill_results = await fill_main_form(page, config, logger)
 
-            logger.info("Field fill summary:")
-            for field_name, ok in fill_results.items():
-                status = "OK" if ok else "FAILED"
-                logger.info("  - %s: %s", field_name, status)
+            if fill_results:
+                logger.info("Field fill summary:")
+                for field_name, ok in fill_results.items():
+                    logger.info("  - %s: %s", field_name, "OK" if ok else "FAILED")
 
-            failed = [name for name, ok in fill_results.items() if not ok]
-            if failed:
-                await save_error_screenshot(page, screenshot_dir, "field_fill_errors", logger)
-                logger.warning("Some fields could not be filled: %s", ", ".join(failed))
+                failed = [name for name, ok in fill_results.items() if not ok]
+                if failed:
+                    await save_error_screenshot(page, screenshot_dir, "field_fill_errors", logger)
+                    logger.warning("Some fields could not be filled: %s", ", ".join(failed))
 
             print("\n" + "=" * 60)
-            print("Browser ma7loul — review form dial billing.")
-            print("Press ENTER bash tsed browser (ma tsubmitich ila ma bghitich).")
+            print("Browser ma7loul — connected b cookies.")
+            print("Review page, w press ENTER bash tsed browser.")
             print("=" * 60)
             await asyncio.to_thread(input, "Press ENTER to close browser... ")
 
