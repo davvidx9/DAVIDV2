@@ -29,7 +29,7 @@
     "city": "New York",
     "country": "United States",
     "state": "NY",
-    "postal_code": "10001"
+    "postal_code": "10080"
   },
   "form": {
     "name": "david alaba",
@@ -37,7 +37,7 @@
     "city": "New York",
     "country": "United States",
     "state": "NY",
-    "postal_code": "10001",
+    "postal_code": "10080",
     "payment": {
       "card_number": "4242424242424242",
       "expiry": "12/30",
@@ -133,7 +133,8 @@
     "text=failed"
   ],
   "headless": false,
-  "slow_mo": 100,
+  "slow_mo": 0,
+  "fast_mode": true,
   "screenshot_dir": "screenshots",
   "log_file": "automation.log"
 }

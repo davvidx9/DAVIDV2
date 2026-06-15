@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Telegram bot — /chk card checker for SignalWire."""
+"""Telegram bot — /chk with single persistent browser tab."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pathlib import Path
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
-from fill_payment_form import run_automation
+from fill_payment_form import get_persistent_session
 
 
 ROOT = Path(__file__).resolve().parent
@@ -31,12 +31,6 @@ def load_bot_config() -> dict:
 
 
 def parse_chk_message(text: str) -> dict[str, str] | None:
-    """Parse:
-    /chk card: 5294153155207609
-    month: 4
-    year: 2027
-    cvc2: 896
-    """
     card = month = year = cvc = None
     patterns = {
         "card": re.compile(r"card\s*:\s*(\d[\d\s]{12,18}\d)", re.I),
@@ -75,23 +69,16 @@ def mask_card(card: str) -> str:
 
 
 async def process_card_check(card: str, month: str, year: str, cvc: str) -> dict:
-    return await run_automation(
-        card_number=card,
-        month=month,
-        year=year,
-        cvc=cvc,
-        interactive=False,
-        submit_card=True,
-    )
+    session = get_persistent_session()
+    return await session.run_card(card, month, year, cvc)
 
 
 async def reply_result(update: Update, result: dict, card_masked: str) -> None:
+    reused = " (nfs tab)" if result.get("reused_tab") else " (tab jdid)"
     if result.get("card_added"):
-        text = f"✅ Card ADDED\n\n💳 {card_masked}\n📝 {result.get('message', 'Success')}"
-    elif result.get("success"):
-        text = f"✅ Done\n\n💳 {card_masked}\n📝 {result.get('message', 'OK')}"
+        text = f"✅ Done{reused}\n\n💳 {card_masked}\n📝 {result.get('message', 'OK')}"
     else:
-        text = f"❌ Card NOT added\n\n💳 {card_masked}\n📝 {result.get('message', 'Failed')}"
+        text = f"❌ Failed{reused}\n\n💳 {card_masked}\n📝 {result.get('message', 'Error')}"
 
     screenshot = result.get("screenshot")
     if screenshot and Path(screenshot).exists():
@@ -103,16 +90,17 @@ async def reply_result(update: Update, result: dict, card_masked: str) -> None:
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Salam! Sift commande b had format:\n\n"
+        "Salam! Browser kaybqa f tab wa7da.\n\n"
         "/chk card: 5294153155207609\n"
         "month: 4\n"
         "year: 2027\n"
         "cvc2: 896\n\n"
-        "Billing info dima:\n"
-        "• name: david alaba\n"
-        "• address: New York\n"
-        "• city: New York\n"
-        "• country: United States"
+        "Lmarra l-ula: login + payment page\n"
+        "Lmarra jaya: redirect nfs tab bla ma ytf7 jdid\n\n"
+        "Billing dima:\n"
+        "• david alaba\n"
+        "• New York\n"
+        "• postal: 10080"
     )
 
 
@@ -124,7 +112,7 @@ async def cmd_chk(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     parsed = parse_chk_message(text)
     if not parsed:
         await update.message.reply_text(
-            "❌ Format ghalat. Sift haka:\n\n"
+            "❌ Format ghalat:\n\n"
             "/chk card: 5294153155207609\n"
             "month: 4\n"
             "year: 2027\n"
@@ -133,13 +121,13 @@ async def cmd_chk(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     card_masked = mask_card(parsed["card"])
-    await update.message.reply_text(f"⏳ Kanchecki card {card_masked}...")
+    await update.message.reply_text(f"⏳ Processing {card_masked}...")
 
     try:
         result = await process_card_check(parsed["card"], parsed["month"], parsed["year"], parsed["cvc"])
         await reply_result(update, result, card_masked)
     except Exception as exc:
-        logger.exception("Card check failed")
+        logger.exception("Processing failed")
         await update.message.reply_text(f"❌ Error: {exc}")
 
 
@@ -161,7 +149,7 @@ def main() -> None:
     app.add_handler(CommandHandler("chk", cmd_chk))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text_message))
 
-    logger.info("Telegram bot running...")
+    logger.info("Telegram bot running — single tab mode")
     app.run_polling()
 
 

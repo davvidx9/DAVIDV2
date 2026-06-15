@@ -43,7 +43,7 @@ DEFAULT_FIXED_BILLING = {
     "city": "New York",
     "country": "United States",
     "state": "NY",
-    "postal_code": "10001",
+    "postal_code": "10080",
 }
 
 
@@ -131,7 +131,7 @@ def load_config() -> dict[str, Any]:
         "target_url": "https://us11111111.signalwire.com/payment_methods/new",
         "session_check_url": "https://us11111111.signalwire.com/dashboard",
         "headless": False,
-        "slow_mo": 100,
+        "slow_mo": 0,
         "screenshot_dir": "screenshots",
         "log_file": "automation.log",
     }
@@ -255,21 +255,32 @@ async def is_visible(locator: Locator, timeout: int = 1500) -> bool:
         return False
 
 
-async def wait_for_page_ready(page: Page, logger: logging.Logger, timeout: int = 20000) -> None:
+async def wait_for_page_ready(page: Page, logger: logging.Logger, timeout: int = 12000) -> None:
     """Wait for page without failing on networkidle (SignalWire keeps connections open)."""
+    fast = load_config().get("fast_mode", True)
+    settle_ms = 400 if fast else 2000
+    network_ms = 4000 if fast else 8000
+
     try:
         await page.wait_for_load_state("domcontentloaded", timeout=timeout)
     except Exception as exc:
         logger.warning("domcontentloaded wait: %s", exc)
     try:
-        await page.wait_for_load_state("load", timeout=10000)
+        await page.wait_for_load_state("load", timeout=5000)
     except Exception:
         pass
     try:
-        await page.wait_for_load_state("networkidle", timeout=8000)
+        await page.wait_for_load_state("networkidle", timeout=network_ms)
     except Exception:
-        logger.warning("networkidle timeout — kaykemel (normal f SignalWire)")
-    await page.wait_for_timeout(2000)
+        logger.debug("networkidle skip — continuing")
+    await page.wait_for_timeout(settle_ms)
+
+
+async def goto_payment_form(page: Page, config: dict[str, Any], logger: logging.Logger) -> None:
+    url = config.get("target_url", f"{config.get('base_url')}/payment_methods/new")
+    logger.info("Opening payment form: %s", url)
+    await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+    await wait_for_page_ready(page, logger)
 
 
 async def import_cookies_by_domain(
@@ -362,16 +373,13 @@ async def authenticate_with_cookies(
 
 
 async def navigate_to_targets(page: Page, config: dict[str, Any], logger: logging.Logger) -> None:
-    """Auto-navigate to configured URLs after login."""
-    base_url = config.get("base_url", "https://us11111111.signalwire.com")
-    target_url = config.get("target_url", f"{base_url}/payment_methods/new")
-    urls = config.get("navigate_urls") or [target_url]
-
-    for url in urls:
-        logger.info("Navigating to: %s", url)
-        response = await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+    """First-time navigation after login."""
+    dashboard = config.get("dashboard_url")
+    if dashboard:
+        logger.info("Navigating to dashboard: %s", dashboard)
+        await page.goto(dashboard, wait_until="domcontentloaded", timeout=60000)
         await wait_for_page_ready(page, logger)
-        logger.info("Page loaded: %s (status=%s)", url, response.status if response else "unknown")
+    await goto_payment_form(page, config, logger)
 
 
 async def verify_session(page: Page, config: dict[str, Any], logger: logging.Logger) -> bool:
@@ -627,10 +635,10 @@ async def submit_and_check_card(page: Page, config: dict[str, Any], logger: logg
     await submit.click()
 
     try:
-        await page.wait_for_load_state("networkidle", timeout=45000)
+        await page.wait_for_load_state("networkidle", timeout=8000)
     except Exception:
         pass
-    await page.wait_for_timeout(2500)
+    await page.wait_for_timeout(800)
 
     for selector in error_selectors:
         if await is_visible(page.locator(selector), timeout=2000):
@@ -656,6 +664,121 @@ async def submit_and_check_card(page: Page, config: dict[str, Any], logger: logg
     return {"submitted": True, "added": False, "message": "Submitted but could not confirm if card was added"}
 
 
+class PersistentBrowserSession:
+    """Tab wa7da — browser kaybqa ma7loul, /chk kayredirect ghir l payment form."""
+
+    def __init__(self) -> None:
+        self._playwright: Any = None
+        self._browser: Browser | None = None
+        self._context: BrowserContext | None = None
+        self._page: Page | None = None
+        self._ready = False
+        self._lock = asyncio.Lock()
+
+    async def close(self) -> None:
+        await safe_close(self._browser, self._context)
+        if self._playwright is not None:
+            try:
+                await self._playwright.stop()
+            except Exception:
+                pass
+        self._playwright = None
+        self._browser = None
+        self._context = None
+        self._page = None
+        self._ready = False
+
+    async def _ensure_browser(self, config: dict[str, Any], logger: logging.Logger) -> Page:
+        if self._page is not None and not self._page.is_closed():
+            return self._page
+
+        await self.close()
+        logger.info("Opening browser tab (first time only)")
+        self._playwright = await async_playwright().start()
+        self._browser = await self._playwright.chromium.launch(
+            headless=config.get("headless", False),
+            slow_mo=config.get("slow_mo", 0),
+        )
+        self._context = await self._browser.new_context()
+        self._page = await self._context.new_page()
+        self._ready = False
+        return self._page
+
+    async def run_card(
+        self,
+        card_number: str,
+        month: str,
+        year: str,
+        cvc: str,
+    ) -> dict[str, Any]:
+        async with self._lock:
+            config = load_config()
+            logger = setup_logging(config.get("log_file", "automation.log"))
+            screenshot_dir = ROOT / config.get("screenshot_dir", "screenshots")
+
+            result: dict[str, Any] = {
+                "success": False,
+                "card_added": False,
+                "message": "",
+                "fill_results": {},
+                "screenshot": None,
+                "reused_tab": self._ready,
+            }
+
+            billing = get_fixed_billing(config)
+            payment = build_payment_data(card_number, month, year, cvc, billing["name"])
+            config = merge_form_with_card(config, payment)
+
+            try:
+                page = await self._ensure_browser(config, logger)
+
+                if not self._ready:
+                    if not await authenticate_with_cookies(page, self._context, config, logger):
+                        await save_error_screenshot(page, screenshot_dir, "invalid_cookies", logger)
+                        result["message"] = "Cookies invalid or expired"
+                        await self.close()
+                        return result
+                    await navigate_to_targets(page, config, logger)
+                    self._ready = True
+                    logger.info("Session ready — tab ghadi tbqa ma7loula")
+                else:
+                    logger.info("Reusing same tab — redirect bla ma ytf7 browser jdid")
+                    await goto_payment_form(page, config, logger)
+
+                fill_results = await fill_main_form(page, config, logger)
+                result["fill_results"] = fill_results
+
+                check = await submit_and_check_card(page, config, logger)
+                result["card_added"] = bool(check.get("added"))
+                result["success"] = result["card_added"]
+                result["message"] = str(check.get("message", ""))
+
+                if not result["card_added"]:
+                    await save_error_screenshot(page, screenshot_dir, "card_not_added", logger)
+                    shots = sorted(screenshot_dir.glob("card_not_added_*.png"))
+                    if shots:
+                        result["screenshot"] = str(shots[-1])
+
+                return result
+
+            except Exception as exc:
+                logger.exception("Session error: %s", exc)
+                await save_error_screenshot(self._page, screenshot_dir, "session_error", logger)
+                result["message"] = str(exc)
+                await self.close()
+                return result
+
+
+_persistent_session: PersistentBrowserSession | None = None
+
+
+def get_persistent_session() -> PersistentBrowserSession:
+    global _persistent_session
+    if _persistent_session is None:
+        _persistent_session = PersistentBrowserSession()
+    return _persistent_session
+
+
 async def safe_close(browser: Browser | None, context: BrowserContext | None) -> None:
     try:
         if context is not None:
@@ -677,7 +800,11 @@ async def run_automation(
     *,
     interactive: bool = True,
     submit_card: bool = False,
+    reuse_session: bool = False,
 ) -> dict[str, Any]:
+    if card_number and month and year and cvc and reuse_session:
+        return await get_persistent_session().run_card(card_number, month, year, cvc)
+
     ensure_cookies_file()
     config = load_config()
     logger = setup_logging(config.get("log_file", "automation.log"))
@@ -720,7 +847,7 @@ async def run_automation(
             logger.info("Launching Chromium browser")
             browser = await playwright.chromium.launch(
                 headless=config.get("headless", False),
-                slow_mo=config.get("slow_mo", 100),
+                slow_mo=config.get("slow_mo", 0),
             )
             context = await browser.new_context()
             page = await context.new_page()
