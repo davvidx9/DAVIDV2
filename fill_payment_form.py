@@ -28,6 +28,24 @@ PLACEHOLDER_MARKERS = (
     "paste cookies",
 )
 
+SAMESITE_MAP = {
+    "strict": "Strict",
+    "lax": "Lax",
+    "none": "None",
+    "no_restriction": "None",
+    "unspecified": "Lax",
+    "default": "Lax",
+}
+
+DEFAULT_FIXED_BILLING = {
+    "name": "david alaba",
+    "billing_address": "New York",
+    "city": "New York",
+    "country": "United States",
+    "state": "NY",
+    "postal_code": "10001",
+}
+
 
 def setup_logging(log_file: str) -> logging.Logger:
     log_path = ROOT / log_file
@@ -130,16 +148,88 @@ def print_cookies_instructions() -> None:
     print("=" * 60 + "\n")
 
 
+def normalize_samesite(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if text in ("Strict", "Lax", "None"):
+        return text
+    return SAMESITE_MAP.get(text.lower())
+
+
 def normalize_cookies(raw_cookies: list[dict[str, Any]], base_url: str) -> list[dict[str, Any]]:
+    allowed_keys = {"name", "value", "domain", "path", "expires", "httpOnly", "secure", "sameSite", "url"}
     normalized: list[dict[str, Any]] = []
+
     for cookie in raw_cookies:
+        if not isinstance(cookie, dict):
+            continue
+
         item = {key: value for key, value in cookie.items() if not str(key).startswith("_")}
         if "name" not in item or "value" not in item:
             continue
+
+        if "expirationDate" in item and "expires" not in item:
+            item["expires"] = int(float(item["expirationDate"]))
+        item.pop("expirationDate", None)
+        item.pop("hostOnly", None)
+        item.pop("session", None)
+        item.pop("storeId", None)
+        item.pop("partitionKey", None)
+
+        if "sameSite" in item:
+            fixed = normalize_samesite(item["sameSite"])
+            if fixed:
+                item["sameSite"] = fixed
+            else:
+                item.pop("sameSite")
+
+        if "expires" in item:
+            try:
+                item["expires"] = int(float(item["expires"]))
+            except (TypeError, ValueError):
+                item.pop("expires")
+
+        item = {key: value for key, value in item.items() if key in allowed_keys}
+
         if "url" not in item and ("domain" not in item or "path" not in item):
             item.setdefault("url", base_url)
+        if "path" not in item:
+            item["path"] = "/"
+
         normalized.append(item)
+
     return normalized
+
+
+def get_fixed_billing(config: dict[str, Any]) -> dict[str, str]:
+    billing = dict(DEFAULT_FIXED_BILLING)
+    billing.update(config.get("fixed_billing", {}))
+    return billing
+
+
+def build_payment_data(card: str, month: str, year: str, cvc: str, cardholder_name: str) -> dict[str, str]:
+    month_int = int(month)
+    year_text = str(year).strip()
+    year_short = year_text[-2:] if len(year_text) >= 2 else year_text
+    expiry = f"{month_int:02d}/{year_short}"
+    return {
+        "card_number": card.strip().replace(" ", ""),
+        "expiry": expiry,
+        "cvc": cvc.strip(),
+        "cardholder_name": cardholder_name,
+    }
+
+
+def merge_form_with_card(config: dict[str, Any], payment_data: dict[str, str]) -> dict[str, Any]:
+    merged = json.loads(json.dumps(config))
+    billing = get_fixed_billing(config)
+    merged.setdefault("form", {})
+    merged["form"].update(billing)
+    merged["form"]["payment"] = payment_data
+    return merged
 
 
 async def save_error_screenshot(page: Page | None, screenshot_dir: Path, name: str, logger: logging.Logger) -> None:
@@ -425,13 +515,180 @@ async def fill_main_form(page: Page, config: dict[str, Any], logger: logging.Log
     return results
 
 
-async def run() -> int:
+async def submit_and_check_card(page: Page, config: dict[str, Any], logger: logging.Logger) -> dict[str, Any]:
+    submit_selectors = config.get("submit_selectors", [
+        "button[type='submit']",
+        "input[type='submit']",
+        "button:has-text('Add')",
+        "button:has-text('Save')",
+        "button:has-text('Submit')",
+    ])
+    success_selectors = config.get("success_selectors", [
+        ".alert-success",
+        "[role='alert']:has-text('success')",
+        "text=successfully",
+        "text=added",
+    ])
+    error_selectors = config.get("error_selectors", [
+        ".alert-danger",
+        ".error",
+        "[role='alert']:has-text('error')",
+        "text=declined",
+        "text=invalid",
+        "text=failed",
+    ])
+
+    submit = await find_first_visible(page, submit_selectors)
+    if submit is None:
+        logger.warning("Submit button not found — card check skipped")
+        return {"submitted": False, "added": False, "message": "Submit button not found"}
+
+    logger.info("Clicking submit to add card")
+    await submit.click()
+
+    try:
+        await page.wait_for_load_state("networkidle", timeout=45000)
+    except Exception:
+        pass
+    await page.wait_for_timeout(2500)
+
+    for selector in error_selectors:
+        if await is_visible(page.locator(selector), timeout=2000):
+            text = (await page.locator(selector).first.inner_text()).strip()
+            logger.error("Card error detected: %s", text)
+            return {"submitted": True, "added": False, "message": text or "Card not added (error on page)"}
+
+    for selector in success_selectors:
+        if await is_visible(page.locator(selector), timeout=2000):
+            text = (await page.locator(selector).first.inner_text()).strip()
+            logger.info("Card success detected: %s", text)
+            return {"submitted": True, "added": True, "message": text or "Card added successfully"}
+
+    current_url = page.url.lower()
+    if "/payment_methods/new" not in current_url:
+        logger.info("Redirected after submit — treating as success: %s", page.url)
+        return {"submitted": True, "added": True, "message": "Card likely added (redirected after submit)"}
+
+    body_text = (await page.locator("body").inner_text()).lower()
+    if any(word in body_text for word in ("declined", "invalid card", "failed", "error")):
+        return {"submitted": True, "added": False, "message": "Card not added (error text on page)"}
+
+    return {"submitted": True, "added": False, "message": "Submitted but could not confirm if card was added"}
+
+
+async def safe_close(browser: Browser | None, context: BrowserContext | None) -> None:
+    try:
+        if context is not None:
+            await context.close()
+    except Exception:
+        pass
+    try:
+        if browser is not None:
+            await browser.close()
+    except Exception:
+        pass
+
+
+async def run_automation(
+    card_number: str | None = None,
+    month: str | None = None,
+    year: str | None = None,
+    cvc: str | None = None,
+    *,
+    interactive: bool = True,
+    submit_card: bool = False,
+) -> dict[str, Any]:
     ensure_cookies_file()
     config = load_config()
     logger = setup_logging(config.get("log_file", "automation.log"))
     screenshot_dir = ROOT / config.get("screenshot_dir", "screenshots")
 
-    logger.info("Starting SignalWire automation (cookies only — bla email/password)")
+    result: dict[str, Any] = {
+        "success": False,
+        "card_added": False,
+        "message": "",
+        "fill_results": {},
+        "screenshot": None,
+    }
+
+    if not COOKIES_PATH.exists():
+        result["message"] = f"cookies.json not found at {COOKIES_PATH}"
+        return result
+
+    try:
+        raw_cookies = load_json(COOKIES_PATH, "cookies.json")
+    except Exception as exc:
+        result["message"] = str(exc)
+        return result
+
+    if cookies_still_placeholder(raw_cookies):
+        result["message"] = "cookies.json still has placeholder values — paste real cookies"
+        return result
+
+    if card_number and month and year and cvc:
+        billing = get_fixed_billing(config)
+        payment = build_payment_data(card_number, month, year, cvc, billing["name"])
+        config = merge_form_with_card(config, payment)
+        submit_card = True
+
+    browser: Browser | None = None
+    context: BrowserContext | None = None
+    page: Page | None = None
+
+    try:
+        async with async_playwright() as playwright:
+            logger.info("Launching Chromium browser")
+            browser = await playwright.chromium.launch(
+                headless=config.get("headless", False),
+                slow_mo=config.get("slow_mo", 100),
+            )
+            context = await browser.new_context()
+            page = await context.new_page()
+
+            if not await authenticate_with_cookies(page, context, config, logger):
+                await save_error_screenshot(page, screenshot_dir, "invalid_cookies", logger)
+                result["message"] = "Cookies invalid or expired"
+                return result
+
+            await navigate_to_targets(page, config, logger)
+            fill_results = await fill_main_form(page, config, logger)
+            result["fill_results"] = fill_results
+
+            if submit_card:
+                check = await submit_and_check_card(page, config, logger)
+                result["card_added"] = bool(check.get("added"))
+                result["success"] = result["card_added"]
+                result["message"] = str(check.get("message", ""))
+                if not result["card_added"]:
+                    await save_error_screenshot(page, screenshot_dir, "card_not_added", logger)
+                    shot = sorted(screenshot_dir.glob("card_not_added_*.png"))
+                    if shot:
+                        result["screenshot"] = str(shot[-1])
+            else:
+                failed = [name for name, ok in fill_results.items() if not ok]
+                result["success"] = len(failed) == 0
+                result["message"] = "Form filled" if result["success"] else f"Some fields failed: {', '.join(failed)}"
+
+            if interactive:
+                print("\nBrowser ma7loul — press ENTER bash tsed.")
+                await asyncio.to_thread(input, "Press ENTER to close browser... ")
+
+            return result
+
+    except Exception as exc:
+        logger.exception("Unhandled error: %s", exc)
+        await save_error_screenshot(page, screenshot_dir, "unhandled_error", logger)
+        result["message"] = str(exc)
+        return result
+
+    finally:
+        await safe_close(browser, context)
+
+
+async def run() -> int:
+    ensure_cookies_file()
+    logger = setup_logging(load_config().get("log_file", "automation.log"))
+    logger.info("Starting SignalWire automation (cookies only)")
 
     if not COOKIES_PATH.exists():
         print_cookies_instructions()
@@ -447,63 +704,20 @@ async def run() -> int:
 
     if cookies_still_placeholder(raw_cookies):
         print_cookies_instructions()
-        print(f"ERROR: 3mer cookies dyalek f {COOKIES_PATH} qbel ma tcontinui.", file=sys.stderr)
+        print(f"ERROR: 3mer cookies dyalek f {COOKIES_PATH}", file=sys.stderr)
         return 1
 
-    browser: Browser | None = None
-    context: BrowserContext | None = None
-    page: Page | None = None
-
-    try:
-        async with async_playwright() as playwright:
-            logger.info("Launching Chromium browser (tab ghadi ytftah)")
-            browser = await playwright.chromium.launch(
-                headless=config.get("headless", False),
-                slow_mo=config.get("slow_mo", 100),
-            )
-
-            context = await browser.new_context()
-            page = await context.new_page()
-
-            if not await authenticate_with_cookies(page, context, config, logger):
-                await save_error_screenshot(page, screenshot_dir, "invalid_cookies", logger)
-                print_cookies_instructions()
-                print("ERROR: Cookies invalid wla expired. Jib cookies jdad w 3awed run.", file=sys.stderr)
-                return 1
-
-            await navigate_to_targets(page, config, logger)
-
-            fill_results = await fill_main_form(page, config, logger)
-
-            if fill_results:
-                logger.info("Field fill summary:")
-                for field_name, ok in fill_results.items():
-                    logger.info("  - %s: %s", field_name, "OK" if ok else "FAILED")
-
-                failed = [name for name, ok in fill_results.items() if not ok]
-                if failed:
-                    await save_error_screenshot(page, screenshot_dir, "field_fill_errors", logger)
-                    logger.warning("Some fields could not be filled: %s", ", ".join(failed))
-
-            print("\n" + "=" * 60)
-            print("Browser ma7loul — connected b cookies.")
-            print("Review page, w press ENTER bash tsed browser.")
-            print("=" * 60)
-            await asyncio.to_thread(input, "Press ENTER to close browser... ")
-
-            return 0
-
-    except Exception as exc:
-        logging.getLogger("signalwire_automation").exception("Unhandled error: %s", exc)
-        await save_error_screenshot(page, screenshot_dir, "unhandled_error", logger)
-        print(f"ERROR: {exc}", file=sys.stderr)
+    result = await run_automation(interactive=True, submit_card=False)
+    if not result.get("success") and "Cookies" in result.get("message", ""):
+        print_cookies_instructions()
+        print(f"ERROR: {result['message']}", file=sys.stderr)
         return 1
 
-    finally:
-        if context is not None:
-            await context.close()
-        if browser is not None:
-            await browser.close()
+    if not result.get("success"):
+        print(f"WARNING: {result.get('message')}", file=sys.stderr)
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":

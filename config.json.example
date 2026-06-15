@@ -20,9 +20,17 @@
     "button:has-text('Sign in')",
     "button:has-text('Log in')"
   ],
+  "fixed_billing": {
+    "name": "david alaba",
+    "billing_address": "New York",
+    "city": "New York",
+    "country": "United States",
+    "state": "NY",
+    "postal_code": "10001"
+  },
   "form": {
-    "name": "John Doe",
-    "billing_address": "123 Main Street",
+    "name": "david alaba",
+    "billing_address": "New York",
     "city": "New York",
     "country": "United States",
     "state": "NY",
@@ -31,7 +39,7 @@
       "card_number": "4242424242424242",
       "expiry": "12/30",
       "cvc": "123",
-      "cardholder_name": "John Doe"
+      "cardholder_name": "david alaba"
     }
   },
   "field_mappings": {
@@ -104,6 +112,23 @@
       "input[autocomplete='cc-name']"
     ]
   },
+  "submit_selectors": [
+    "button[type='submit']",
+    "input[type='submit']",
+    "button:has-text('Add')",
+    "button:has-text('Save')"
+  ],
+  "success_selectors": [
+    ".alert-success",
+    "text=successfully",
+    "text=added"
+  ],
+  "error_selectors": [
+    ".alert-danger",
+    "text=declined",
+    "text=invalid",
+    "text=failed"
+  ],
   "headless": false,
   "slow_mo": 100,
   "screenshot_dir": "screenshots",

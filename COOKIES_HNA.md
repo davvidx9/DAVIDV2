@@ -57,6 +57,8 @@ Fta7 file `cookies.json` w bdel ghir `value` (w `name` ila ma matl9ach):
 - **`value`** = **HNA fin katpaste value dyal session** ← hadchi lmohem
 - **`domain`** = `.signalwire.com` wla `us11111111.signalwire.com`
 
+> **Note:** Ila jbti cookies mn Chrome extension, `sameSite` kaykon `unspecified` — script kayfixih automatiquement. Ma khassk tbeddlou.
+
 Ila 3andek bzaf dial cookies, zid object jdid f liste:
 
 ```json
