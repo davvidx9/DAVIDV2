@@ -48,12 +48,15 @@ DEFAULT_FIXED_BILLING = {
 
 
 def setup_logging(log_file: str) -> logging.Logger:
+    logger = logging.getLogger("signalwire_automation")
+    if logger.handlers:
+        return logger
+
     log_path = ROOT / log_file
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    logger = logging.getLogger("signalwire_automation")
     logger.setLevel(logging.INFO)
-    logger.handlers.clear()
+    logger.propagate = False
 
     formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
 
@@ -126,6 +129,7 @@ def load_config() -> dict[str, Any]:
         return load_json(CONFIG_TEMPLATE_PATH, "config.json.example")
     return {
         "base_url": "https://us11111111.signalwire.com",
+        "cookie_warmup_url": "https://id.signalwire.com/login/session/new",
         "target_url": "https://us11111111.signalwire.com/payment_methods/new",
         "session_check_url": "https://us11111111.signalwire.com/payment_methods/new",
         "headless": False,
@@ -140,7 +144,10 @@ def print_cookies_instructions() -> None:
     print("FIN THOT COOKIES DYAL ACCOUNT DYALEK:")
     print(f"  -> {COOKIES_PATH}")
     print("\n1) Connecté f SignalWire f Chrome")
-    print("2) F12 -> Application -> Cookies -> signalwire.com")
+    print("2) F12 -> Application -> Cookies")
+    print("   -> id.signalwire.com  (IMPORTANT)")
+    print("   -> us11111111.signalwire.com")
+    print("   -> .signalwire.com")
     print("3) Copier name + value dial cookies")
     print(f"4) Paste f file: {COOKIES_PATH}")
     print("5) 3awed double-click run.bat")
@@ -289,9 +296,10 @@ async def authenticate_with_cookies(
     config: dict[str, Any],
     logger: logging.Logger,
 ) -> bool:
-    """Fast cookies: open payment page → import cookies → refresh same page."""
+    """Cookies flow: id.signalwire.com warmup → import → payment page."""
     base_url = config.get("base_url", "https://us11111111.signalwire.com")
     target_url = config.get("target_url", f"{base_url}/payment_methods/new")
+    id_warmup = config.get("cookie_warmup_url", "https://id.signalwire.com/login/session/new")
 
     if not COOKIES_PATH.exists():
         logger.error("cookies.json not found")
@@ -312,23 +320,35 @@ async def authenticate_with_cookies(
         logger.error("No valid cookies found in cookies.json")
         return False
 
-    logger.info("Step 1: Open %s (before cookies)", target_url)
-    await page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
-    await quick_wait(page)
+    logger.info("Step 1: Warmup %s (before cookies)", id_warmup)
+    await page.goto(id_warmup, wait_until="domcontentloaded", timeout=30000)
+    await quick_wait(page, 200)
 
     logger.info("Step 2: Import %s cookie(s)", len(cookies))
     await context.add_cookies(cookies)
     logger.info("Cookies in browser: %s", len(await context.cookies()))
 
-    logger.info("Step 3: Refresh %s", target_url)
-    await page.reload(wait_until="domcontentloaded", timeout=30000)
-    await quick_wait(page)
+    logger.info("Step 3: Go to %s", target_url)
+    await page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
+    await quick_wait(page, 400)
 
     if await verify_session(page, config, logger):
         logger.info("Session OK — payment page ready")
         return True
 
-    logger.error("Session invalid (url=%s)", page.url)
+    if "id.signalwire" not in page.url.lower():
+        logger.info("Step 4: Refresh payment page")
+        await page.reload(wait_until="domcontentloaded", timeout=30000)
+        await quick_wait(page, 400)
+        if await verify_session(page, config, logger):
+            logger.info("Session OK after refresh")
+            return True
+
+    logger.error(
+        "Session invalid (url=%s) — export cookies mn id.signalwire.com W %s",
+        page.url,
+        base_url,
+    )
     return False
 
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import sys
 from pathlib import Path
 
 from telegram import Update
@@ -18,8 +19,13 @@ ROOT = Path(__file__).resolve().parent
 BOT_CONFIG_PATH = ROOT / "bot_config.json"
 BOT_CONFIG_EXAMPLE = ROOT / "bot_config.json.example"
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s", force=True)
 logger = logging.getLogger("telegram_bot")
+logger.propagate = False
+if not logger.handlers:
+    _handler = logging.StreamHandler(sys.stdout)
+    _handler.setFormatter(logging.Formatter("%(asctime)s | %(levelname)s | %(message)s"))
+    logger.addHandler(_handler)
 
 
 def load_bot_config() -> dict:
