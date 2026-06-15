@@ -146,7 +146,6 @@ def print_cookies_instructions() -> None:
     print("3) Copier name + value dial cookies")
     print(f"4) Paste f file: {COOKIES_PATH}")
     print("5) 3awed double-click run.bat")
-    print("\nTalimt kamla: COOKIES_HNA.md")
     print("=" * 60 + "\n")
 
 
