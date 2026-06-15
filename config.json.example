@@ -1,6 +1,7 @@
 {
   "base_url": "https://us11111111.signalwire.com",
   "cookie_start_url": "https://signalwire.com",
+  "cookie_warmup_url": "https://id.signalwire.com/login/session/new",
   "target_url": "https://us11111111.signalwire.com/payment_methods/new",
   "session_check_url": "https://us11111111.signalwire.com/payment_methods/new",
   "session_valid_selectors": [

@@ -130,6 +130,7 @@ def load_config() -> dict[str, Any]:
     return {
         "base_url": "https://us11111111.signalwire.com",
         "cookie_start_url": "https://signalwire.com",
+        "cookie_warmup_url": "https://id.signalwire.com/login/session/new",
         "target_url": "https://us11111111.signalwire.com/payment_methods/new",
         "session_check_url": "https://us11111111.signalwire.com/payment_methods/new",
         "headless": False,
@@ -274,16 +275,26 @@ async def goto_payment_form(page: Page, config: dict[str, Any], logger: logging.
     await quick_wait(page, 80)
 
 
+async def goto_fast(page: Page, url: str, *, wait: str = "domcontentloaded") -> None:
+    await page.goto(url, wait_until=wait, timeout=25000)
+
+
+def log_cookie_domains(cookies: list[dict[str, Any]], logger: logging.Logger) -> None:
+    domains = sorted({str(c.get("domain", "?")) for c in cookies})
+    logger.info("Cookie domains: %s", ", ".join(domains))
+
+
 async def authenticate_with_cookies(
     page: Page,
     context: BrowserContext,
     config: dict[str, Any],
     logger: logging.Logger,
 ) -> bool:
-    """signalwire.com → import cookies → payment_methods/new"""
+    """Tab signalwire.com → id SSO → import cookies → payment page."""
     base_url = config.get("base_url", "https://us11111111.signalwire.com")
     target_url = config.get("target_url", f"{base_url}/payment_methods/new")
     start_url = config.get("cookie_start_url", "https://signalwire.com")
+    id_url = config.get("cookie_warmup_url", "https://id.signalwire.com/login/session/new")
 
     if not COOKIES_PATH.exists():
         logger.error("cookies.json not found")
@@ -304,22 +315,39 @@ async def authenticate_with_cookies(
         logger.error("No valid cookies found in cookies.json")
         return False
 
+    log_cookie_domains(cookies, logger)
+
     logger.info("Step 1: Open tab %s", start_url)
-    await goto_fast(page, start_url, wait="commit")
-    await quick_wait(page, 100)
-
-    logger.info("Step 2: Import %s cookie(s)", len(cookies))
-    await context.add_cookies(cookies)
-
-    logger.info("Step 3: Redirect %s", target_url)
-    await goto_fast(page, target_url, wait="domcontentloaded")
+    await goto_fast(page, start_url, wait="domcontentloaded")
     await quick_wait(page, 120)
+
+    logger.info("Step 2: SSO %s", id_url)
+    await goto_fast(page, id_url, wait="domcontentloaded")
+    await quick_wait(page, 120)
+
+    logger.info("Step 3: Import %s cookie(s)", len(cookies))
+    await context.add_cookies(cookies)
+    logger.info("Browser cookies count: %s", len(await context.cookies()))
+
+    logger.info("Step 4: Redirect %s", target_url)
+    await goto_fast(page, target_url, wait="domcontentloaded")
+    await quick_wait(page, 200)
 
     if await verify_session(page, config, logger):
         logger.info("Payment page ready")
         return True
 
-    logger.error("Session invalid (url=%s)", page.url)
+    logger.warning("Retry cookies — back to id page then payment")
+    await goto_fast(page, id_url, wait="domcontentloaded")
+    await context.add_cookies(cookies)
+    await goto_fast(page, target_url, wait="domcontentloaded")
+    await quick_wait(page, 200)
+
+    if await verify_session(page, config, logger):
+        logger.info("Payment page ready (after retry)")
+        return True
+
+    logger.error("Session invalid (url=%s) — jib cookies jdad mn id + us subdomain", page.url)
     return False
 
 
@@ -334,18 +362,20 @@ async def navigate_to_targets(page: Page, config: dict[str, Any], logger: loggin
 
 async def verify_session(page: Page, config: dict[str, Any], logger: logging.Logger) -> bool:
     current_url = page.url.lower()
-    if any(token in current_url for token in ("sign_in", "login", "session/new")):
-        logger.error("Login redirect (url=%s)", page.url)
+    logger.info("Current URL: %s", page.url)
+
+    if "id.signalwire.com/login" in current_url or "session/new" in current_url:
+        logger.error("Still on login page")
         return False
 
     if "payment_methods" in current_url:
         return True
 
     add_card = page.locator("input[type='submit'][name='commit'][value='Add Card']")
-    if await is_visible(add_card, timeout=2000):
+    if await is_visible(add_card, timeout=2500):
         return True
 
-    return "login" not in current_url and "id.signalwire.com" not in current_url
+    return False
 
 
 async def find_first_visible(page_or_frame: Page | Frame, selectors: list[str]) -> Locator | None:
@@ -701,7 +731,6 @@ class PersistentBrowserSession:
                 logger.exception("Session error: %s", exc)
                 await save_error_screenshot(self._page, screenshot_dir, "session_error", logger)
                 result["message"] = str(exc)
-                await self.close()
                 return result
 
 
