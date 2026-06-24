@@ -1,0 +1,211 @@
+{
+  "meta": {
+    "lastScan": "2026-06-24T00:00:00Z",
+    "scanType": "PHASE_1_INITIAL",
+    "workspacePath": "/workspace",
+    "resourcesPath": null,
+    "resourcesPathExpected": "resources/",
+    "userReferencedPath": "C:\\Users\\klare\\Downloads\\resourcesnew\\resources",
+    "status": "INCOMPLETE",
+    "statusMessage": "Full resources folder not present in workspace. Only remote branch artifacts indexed.",
+    "totalResourcesIndexed": 2,
+    "totalFxmanifestOnMain": 0
+  },
+  "resources": [
+    {
+      "name": "3fe_arenas",
+      "scriptname": "3fe_arenas",
+      "type": "map",
+      "category": ["maps", "pvp-arenas", "mlo"],
+      "author": "3fe",
+      "version": "1.0.0",
+      "fxVersion": "bodacious",
+      "game": "gta5",
+      "lua54": true,
+      "location": {
+        "presentInWorkspace": false,
+        "gitBranch": "origin/cursor/3fe-arenas-map-decrypt-3e04",
+        "gitPath": "fivem_map_script/decrypted/3fe_arenas/"
+      },
+      "dependencies": ["/assetpacks"],
+      "dependents": [],
+      "provides": {
+        "exports": [],
+        "events": [],
+        "commands": []
+      },
+      "scripts": {
+        "client": [],
+        "server": [],
+        "shared": []
+      },
+      "nui": null,
+      "stream": {
+        "enabled": true,
+        "files": [
+          "stream/3fe_3vs3_r.ydr",
+          "stream/3fe_3vs3_r.ymap",
+          "stream/3fe_3vs3_r.ytyp",
+          "stream/3fe_arena_3_mini.ydr",
+          "stream/3fe_arena_3_mini.ymap",
+          "stream/3fe_arenas.ytyp",
+          "stream/3fe_india_arena_r.ydr",
+          "stream/3fe_india_arena_r.ymap",
+          "stream/3fe_india_r.ytyp",
+          "stream/_manifest.ymf"
+        ],
+        "dataFiles": [
+          "DLC_ITYP_REQUEST stream/3fe_arenas.ytyp",
+          "DLC_ITYP_REQUEST stream/3fe_3vs3_r.ytyp",
+          "DLC_ITYP_REQUEST stream/3fe_india_r.ytyp"
+        ]
+      },
+      "maps": [
+        {
+          "name": "3fe_3vs3_r",
+          "type": "arena-3v3",
+          "center": { "x": -2037.53, "y": 7719.44, "z": 466.22 }
+        },
+        {
+          "name": "3fe_arena_3_mini",
+          "type": "mini-arena",
+          "center": { "x": -3902.67, "y": 7362.93, "z": 261.9 }
+        },
+        {
+          "name": "3fe_india_arena_r",
+          "type": "india-arena",
+          "center": { "x": -2829.48, "y": 7416.6, "z": 265.66 }
+        }
+      ],
+      "escrow": {
+        "fxap": true,
+        "encryptedAssets": ["stream/*.ydr"],
+        "requiresKeymaster": true
+      },
+      "configFiles": [],
+      "assets": {
+        "lua": 1,
+        "ymap": 3,
+        "ydr": 3,
+        "ytyp": 3,
+        "ymf": 1
+      },
+      "systems": {
+        "pvp": "arena-geometry-only",
+        "queue": false,
+        "match": false,
+        "leaderboard": false,
+        "admin": false,
+        "inventory": false,
+        "vehicles": false,
+        "weapons": false,
+        "anticheat": false,
+        "database": false
+      }
+    },
+    {
+      "name": "pl_loadingscreenv2",
+      "scriptname": "pl_loadingscreenv2",
+      "type": "loadscreen",
+      "category": ["ui", "nui", "loadingscreen"],
+      "author": "Pulse Scripts",
+      "version": "1.0.0",
+      "fxVersion": "cerulean",
+      "game": "gta5",
+      "lua54": true,
+      "location": {
+        "presentInWorkspace": false,
+        "gitBranch": "origin/cursor/pl-loadingscreen-decrypt-3e04",
+        "gitPath": "pl_loadingscreenv2/decrypted/pl_loadingscreenv2/"
+      },
+      "dependencies": ["/assetpacks"],
+      "dependents": [],
+      "provides": {
+        "exports": [],
+        "events": [],
+        "commands": []
+      },
+      "scripts": {
+        "client": ["client.lua"],
+        "server": ["server.lua"],
+        "shared": ["config.lua"]
+      },
+      "nui": {
+        "enabled": true,
+        "page": "web/index.html",
+        "files": [
+          "web/index.html",
+          "web/style.css",
+          "web/script.js",
+          "web/config.js",
+          "web/assets/avatars/*.jfif",
+          "web/assets/logo.png",
+          "web/assets/background.mp4",
+          "web/assets/music/*.mp3",
+          "web/assets/music/*.png"
+        ],
+        "loadscreenManualShutdown": true,
+        "loadscreenCursor": true,
+        "nuiCallbacks": []
+      },
+      "stream": null,
+      "escrow": {
+        "fxap": true,
+        "escrowIgnore": ["web/*", "client.lua", "config.lua"],
+        "serverLuaReplaced": true
+      },
+      "configFiles": [
+        {
+          "file": "config.lua",
+          "exports": "Config",
+          "keys": ["EnableWaterMark"]
+        },
+        {
+          "file": "web/config.js",
+          "exports": "CONFIG",
+          "keys": ["server", "background", "theme", "music", "social", "staff", "loading"]
+        }
+      ],
+      "assets": {
+        "lua": 4,
+        "js": 2,
+        "html": 1,
+        "css": 1,
+        "video": 1,
+        "audio": 2,
+        "images": 7
+      },
+      "systems": {
+        "pvp": false,
+        "queue": false,
+        "match": false,
+        "leaderboard": false,
+        "admin": false,
+        "inventory": false,
+        "vehicles": false,
+        "weapons": false,
+        "anticheat": false,
+        "database": false
+      }
+    }
+  ],
+  "missingCategories": [
+    "core-framework",
+    "queue-system",
+    "match-system",
+    "leaderboard",
+    "admin-system",
+    "inventory",
+    "vehicles",
+    "weapons",
+    "anticheat",
+    "database",
+    "server-cfg"
+  ],
+  "workspaceFiles": [
+    ".gitignore",
+    "README.md",
+    "TEST",
+    "TEST V2"
+  ]
+}

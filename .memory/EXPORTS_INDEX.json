@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "lastScan": "2026-06-24T00:00:00Z",
+    "totalExports": 0,
+    "totalImportReferences": 0,
+    "status": "INCOMPLETE"
+  },
+  "exports": [],
+  "exportsByResource": {
+    "3fe_arenas": [],
+    "pl_loadingscreenv2": []
+  },
+  "sharedGlobals": [
+    {
+      "name": "Config",
+      "resource": "pl_loadingscreenv2",
+      "file": "config.lua",
+      "type": "table",
+      "fields": {
+        "EnableWaterMark": "boolean"
+      }
+    },
+    {
+      "name": "CONFIG",
+      "resource": "pl_loadingscreenv2",
+      "file": "web/config.js",
+      "type": "object",
+      "fields": {
+        "server": "object",
+        "background": "object",
+        "theme": "object",
+        "music": "object"
+      },
+      "note": "Client-side NUI config, not a Lua export"
+    }
+  ],
+  "crossResourceCalls": [],
+  "expectedPvPExports": {
+    "note": "Not found — placeholder for when resources are added",
+    "patterns": [
+      "GetPlayerMatch",
+      "JoinQueue",
+      "LeaveQueue",
+      "GetLeaderboard",
+      "IsPlayerInMatch",
+      "GiveWeapon",
+      "OpenInventory"
+    ]
+  }
+}
