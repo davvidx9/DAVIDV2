@@ -1,0 +1,66 @@
+{
+  "meta": {
+    "lastScan": "2026-06-24T00:00:00Z",
+    "totalEvents": 1,
+    "totalNetEvents": 0,
+    "totalServerEvents": 0,
+    "totalClientEvents": 0,
+    "totalAddEventHandler": 1,
+    "totalRegisterCommand": 0,
+    "status": "INCOMPLETE"
+  },
+  "nativeEvents": [
+    {
+      "name": "playerSpawned",
+      "type": "native",
+      "side": "client",
+      "resource": "pl_loadingscreenv2",
+      "file": "client.lua",
+      "handler": "AddEventHandler",
+      "description": "Shuts down loading screen NUI and performs screen fade on first spawn",
+      "actions": [
+        "ShutdownLoadingScreenNui()",
+        "DoScreenFadeOut(0)",
+        "Wait(2000)",
+        "DoScreenFadeIn(2500)"
+      ]
+    }
+  ],
+  "registerNetEvents": [],
+  "triggerServerEvents": [],
+  "triggerClientEvents": [],
+  "triggerEventLocal": [],
+  "addEventHandler": [
+    {
+      "event": "playerSpawned",
+      "resource": "pl_loadingscreenv2",
+      "file": "client.lua",
+      "side": "client"
+    }
+  ],
+  "registerCommand": [],
+  "nuiMessages": [
+    {
+      "resource": "pl_loadingscreenv2",
+      "file": "web/script.js",
+      "note": "Obfuscated JS listens for window message events",
+      "knownActions": [
+        "loadProgress",
+        "loadFraction",
+        "onClientReady"
+      ],
+      "source": "FiveM standard loadscreen protocol"
+    }
+  ],
+  "expectedPvPEvents": {
+    "note": "Not found — placeholder for when resources are added",
+    "patterns": [
+      "pvp:*",
+      "match:*",
+      "queue:*",
+      "arena:*",
+      "leaderboard:*",
+      "admin:*"
+    ]
+  }
+}

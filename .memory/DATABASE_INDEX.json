@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "lastScan": "2026-06-24T00:00:00Z",
+    "totalSqlFiles": 0,
+    "totalTables": 0,
+    "databaseDrivers": [],
+    "status": "INCOMPLETE",
+    "statusMessage": "No SQL files or database interactions found in workspace or indexed branches"
+  },
+  "drivers": [],
+  "sqlFiles": [],
+  "tables": [],
+  "queries": [],
+  "resourcesWithDatabase": [],
+  "expectedPvPDatabase": {
+    "note": "Anticipated schema when full server is added — NOT present in repo",
+    "suggestedTables": [
+      {
+        "name": "pvp_players",
+        "purpose": "Player stats, ELO, wins/losses",
+        "columns": ["identifier", "kills", "deaths", "wins", "losses", "elo", "updated_at"]
+      },
+      {
+        "name": "pvp_matches",
+        "purpose": "Match history",
+        "columns": ["id", "map", "mode", "team1_score", "team2_score", "started_at", "ended_at"]
+      },
+      {
+        "name": "pvp_match_players",
+        "purpose": "Per-match player participation",
+        "columns": ["match_id", "identifier", "team", "kills", "deaths"]
+      },
+      {
+        "name": "pvp_leaderboard",
+        "purpose": "Cached leaderboard rankings",
+        "columns": ["identifier", "rank", "score", "season"]
+      },
+      {
+        "name": "pvp_queue",
+        "purpose": "Active queue entries (if persisted)",
+        "columns": ["identifier", "mode", "joined_at"]
+      },
+      {
+        "name": "admin_bans",
+        "purpose": "Ban records",
+        "columns": ["identifier", "reason", "banned_by", "expires_at"]
+      }
+    ]
+  }
+}
